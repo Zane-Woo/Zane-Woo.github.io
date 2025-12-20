@@ -1,0 +1,642 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>java基础八股速记.md | Zane</title><meta name="author" content="Zane Woo"><meta name="copyright" content="Zane Woo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Java八股速记，笔记不会记得很详细，只会将知识点和对应的关键点记下来，主要是自己能看懂，核心在于原理、对比和场景。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java基础八股速记.md">
+<meta property="og:url" content="https://zane-woo.github.io/2025/12/20/java%E5%9F%BA%E7%A1%80%E5%85%AB%E8%82%A1%E9%80%9F%E8%AE%B0/index.html">
+<meta property="og:site_name" content="Zane">
+<meta property="og:description" content="Java八股速记，笔记不会记得很详细，只会将知识点和对应的关键点记下来，主要是自己能看懂，核心在于原理、对比和场景。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zane-woo.github.io/img/img3.webp">
+<meta property="article:published_time" content="2025-12-20T05:02:07.000Z">
+<meta property="article:modified_time" content="2025-12-20T10:53:54.300Z">
+<meta property="article:author" content="Zane Woo">
+<meta property="article:tag" content="八股">
+<meta property="article:tag" content="javaguide">
+<meta property="article:tag" content="java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zane-woo.github.io/img/img3.webp"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "java基础八股速记.md",
+  "url": "https://zane-woo.github.io/2025/12/20/java%E5%9F%BA%E7%A1%80%E5%85%AB%E8%82%A1%E9%80%9F%E8%AE%B0/",
+  "image": "https://zane-woo.github.io/img/img3.webp",
+  "datePublished": "2025-12-20T05:02:07.000Z",
+  "dateModified": "2025-12-20T10:53:54.300Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Zane Woo",
+      "url": "https://Zane-Woo.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://zane-woo.github.io/2025/12/20/java%E5%9F%BA%E7%A1%80%E5%85%AB%E8%82%A1%E9%80%9F%E8%AE%B0/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'java基础八股速记.md',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="preload" as="image" href="/img/img0.webp"><link rel="preload" as="image" href="/img/avatar2.webp"><link rel="preload" as="image" href="/img/img3.webp"><link rel="preload" as="image" href="/img/img4.webp"><link rel="preload" as="image" href="/img/img5.webp"><link rel="preload" as="image" href="/img/img6.webp"><link rel="preload" as="image" href="/img/img7.webp"><link rel="dns-prefetch" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//cdn.jsdelivr.net" crossorigin><style>#site-info::before{content:"";display:block;width:150px;height:150px;margin:0 auto 30px;border-radius:50%;background:url(/img/avatar.webp) center/cover;border:3px solid rgba(255,255,255,0.8);box-shadow:0 5px 20px rgba(0,0,0,0.3);}</style><style>.card-widget,.recent-post-item{background:rgba(255,255,255,0.75)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;border:1px solid rgba(255,255,255,0.3)!important;box-shadow:0 8px 32px rgba(0,0,0,0.1)!important;}[data-theme="dark"] .card-widget,[data-theme="dark"] .recent-post-item{background:rgba(0,0,0,0.5)!important;border:1px solid rgba(255,255,255,0.1)!important;}</style><style>body{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%2349b1f5' opacity='0.6'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23fff'/%3E%3C/svg%3E") 16 16,auto!important;}a:hover,button:hover{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23ff7242' opacity='0.8'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23fff'/%3E%3C/svg%3E") 16 16,pointer!important;}</style><meta name="generator" content="Hexo 7.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">Loading...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="web_bg" style="background-image: url(/img/img3.webp);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">6</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">8</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/img3.webp);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Zane</span></a><a class="nav-page-title" href="/"><span class="site-name">java基础八股速记.md</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">java基础八股速记.md</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2025-12-20T05:02:07.000Z" title="Created 2025-12-20 13:02:07">2025-12-20</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2025-12-20T10:53:54.300Z" title="Updated 2025-12-20 18:53:54">2025-12-20</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/">学习</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/">coding</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/">java</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80/">语言基础</a></span></div><div class="meta-secondline"></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="Java程序的执行过程"><a href="#Java程序的执行过程" class="headerlink" title="Java程序的执行过程"></a>Java程序的执行过程</h2><p>.java文件 -&gt; 编译器(javac) -&gt; .class字节码 -&gt; JVM(解释执行&#x2F;JIT编译执行) -&gt; 机器码 -&gt; 操作系统执行</p>
+<p>这个过程涉及的核心组件：编译器、JVM、JIT (Just-In-Time) 和 AOT (Ahead-Of-Time)。</p>
+<h2 id="字节码"><a href="#字节码" class="headerlink" title="字节码"></a>字节码</h2><p><strong>定义</strong>：字节码是由.java或者其他支持字节码编译器的语言编译后形成的代码 (.class 文件)。</p>
+<p><strong>存在的原因&#x2F;解决的问题</strong>：字节码不是针对特定 OS 和 ISA (指令集架构) 的，它可以在任意平台上的 JVM 中运行，实现了 “Write Once, Run Anywhere” 的跨平台特性。</p>
+<p><strong>特性</strong>：</p>
+<ul>
+<li><strong>混合执行模式</strong>：<ul>
+<li><strong>解释执行</strong>：JVM 解释器逐行将字节码翻译成机器码执行，启动快但运行慢。</li>
+<li><strong>JIT 编译</strong>：JVM 将热点代码（HotSpot）编译成本地机器码并缓存（Code Cache），后续直接执行机器码，效率接近 C++。</li>
+</ul>
+</li>
+<li><strong>JVM 本质</strong>：JVM 本质上是运行在 OS 上的软件，它负责解析字节码并调用底层的 OS 指令。</li>
+</ul>
+<p><strong>问题</strong>：</p>
+<ul>
+<li><strong>既然编译型更快，为什么还要采用解释型？</strong><ul>
+<li><strong>启动响应</strong>：解释器立即执行，无需等待编译时间。</li>
+<li><strong>内存占用</strong>：JIT 编译后的机器码需要占用内存（Code Cache）。</li>
+<li><strong>优化</strong>：混合模式权衡了启动速度和峰值性能。</li>
+</ul>
+</li>
+<li>**AOT (Ahead-Of-Time)**：在程序运行前直接将 Java 代码编译成机器码（如 GraalVM），解决启动慢和预热问题，但丧失了部分动态特性（如动态加载类）。</li>
+</ul>
+<h2 id="类与接口"><a href="#类与接口" class="headerlink" title="类与接口"></a>类与接口</h2><p>**类 (Class)**：创建对象的模板，定义了属性（状态）和行为（方法）。支持继承（Is-A）。<br>**接口 (Interface)**：行为的规范&#x2F;契约（Can-Do）。支持多实现。</p>
+<p><strong>类和接口的实质</strong>：</p>
+<ul>
+<li>在内存中，类和接口本质上都对应一个 <code>java.lang.Class</code> 对象。</li>
+<li><code>Class.isInterface()</code> 可用于区分。</li>
+</ul>
+<p><strong>构成对比</strong>：</p>
+<ul>
+<li><strong>类</strong>：元数据、字段、方法、构造器、静态代码块。</li>
+<li><strong>接口</strong>：<ul>
+<li>JDK 7及以前：只能有 <code>public abstract</code> 方法和 <code>public static final</code> 常量。</li>
+<li>JDK 8：增加 <code>default</code> 方法（默认实现，便于接口升级兼容）和 <code>static</code> 方法。</li>
+<li>JDK 9：增加 <code>private</code> 方法（供接口内部默认方法复用）。</li>
+</ul>
+</li>
+</ul>
+<p><strong>问题</strong>：</p>
+<ul>
+<li><strong>抽象类和接口的区别？</strong><ul>
+<li><strong>设计层面</strong>：抽象类是 <strong>“Is-A”</strong> (它是什么)，用于代码复用（模板方法模式）；接口是 <strong>“Has-A&#x2F;Can-Do”</strong> (它能做什么)，用于解耦和规范行为。</li>
+<li><strong>语法层面</strong>：类单继承，接口多实现；抽象类可以有构造器和状态（成员变量），接口一般只有常量。</li>
+<li><strong>场景</strong>：设计支付渠道，<code>AbstractPaymentChannel</code> 可以处理通用的日志、校验逻辑；<code>PaymentInterface</code> 定义 <code>pay()</code>, <code>refund()</code> 方法规范。</li>
+</ul>
+</li>
+</ul>
+<h2 id="对象-Object"><a href="#对象-Object" class="headerlink" title="对象 (Object)"></a>对象 (Object)</h2><p><strong>定义</strong>：Java 中所有类的父类（根类）。任何类如果未显式继承其他类，默认继承 Object。</p>
+<p><strong>核心方法</strong>：</p>
+<ul>
+<li><code>equals(Object obj)</code>: 判断对象是否相等（默认比较地址，通常需要重写比较内容）。</li>
+<li><code>hashCode()</code>: 返回对象的哈希码。<strong>约定</strong>：equals 相等，hashCode 必须相等；hashCode 相等，equals 不一定相等（哈希冲突）。</li>
+<li><code>toString()</code>: 返回对象的字符串表示。</li>
+<li><code>clone()</code>: 创建并返回对象的副本（浅拷贝，需实现 Cloneable 接口）。</li>
+<li><code>getClass()</code>: 返回对象的运行时类。</li>
+<li><code>wait()</code>, <code>notify()</code>, <code>notifyAll()</code>: 线程通信&#x2F;同步相关。</li>
+<li><code>finalize()</code>: <strong>已废弃</strong>（JDK 9），垃圾回收前被调用，不可靠。</li>
+</ul>
+<p><strong>问题</strong>：</p>
+<ul>
+<li><strong>&#x3D;&#x3D; 和 equals 的区别？</strong><ul>
+<li><code>==</code>：比较基本类型是比较值；比较引用类型是比较内存地址。</li>
+<li><code>equals</code>：默认同 <code>==</code>，但 String、Integer 等重写了该方法，比较的是<strong>值&#x2F;内容</strong>。</li>
+</ul>
+</li>
+<li><strong>为什么重写 equals 必须重写 hashCode？</strong><ul>
+<li>如果只重写 equals，可能导致两个“逻辑相等”的对象有不同的 hashCode。在 HashMap&#x2F;HashSet 中，这将导致无法正确通过 key 找到 value（因为先算 hash 确定桶下标）。</li>
+</ul>
+</li>
+</ul>
+<h2 id="包装类"><a href="#包装类" class="headerlink" title="包装类"></a>包装类</h2><p><strong>定义</strong>：8种基本数据类型对应的引用类型（如 <code>int</code> -&gt; <code>Integer</code>, <code>char</code> -&gt; <code>Character</code>）。为了让基本类型也能参与面向对象的操作（如泛型、集合中只能存对象）。</p>
+<p><strong>特性</strong>：</p>
+<ul>
+<li><strong>自动装箱&#x2F;拆箱</strong>：编译器自动调用 <code>Integer.valueOf(int)</code> 和 <code>Integer.intValue()</code>。</li>
+<li>**缓存机制 (享元模式)**：<ul>
+<li><code>Byte</code>, <code>Short</code>, <code>Integer</code>, <code>Long</code> 默认缓存 <strong>[-128, 127]</strong> 的对象。</li>
+<li><code>Character</code> 缓存 [0, 127]。</li>
+<li><strong>坑</strong>：<code>Integer a = 100; Integer b = 100;</code> (a&#x3D;&#x3D;b 为 true)；<code>Integer c = 200; Integer d = 200;</code> (c&#x3D;&#x3D;d 为 false，超出缓存范围创建新对象)。</li>
+</ul>
+</li>
+</ul>
+<p><strong>问题</strong>：</p>
+<ul>
+<li><strong>所有 POJO 属性为什么推荐用包装类？</strong><ul>
+<li>因为数据库的查询结果可能是 <code>null</code>。基本类型（如 int）默认值是 0，无法区分“数据不存在”和“数据值为0”。</li>
+</ul>
+</li>
+</ul>
+<h2 id="String-字符串"><a href="#String-字符串" class="headerlink" title="String (字符串)"></a>String (字符串)</h2><p><strong>定义</strong>：Java 中最常用的类，代表字符串。</p>
+<p><strong>特性</strong>：</p>
+<ul>
+<li>**不可变性 (Immutable)**：<ul>
+<li>底层是 <code>private final char[]</code> (JDK 8) 或 <code>byte[]</code> (JDK 9+，节省内存)。</li>
+<li>一旦创建，内容无法修改。修改 String 其实是创建了新对象。</li>
+<li><strong>优点</strong>：线程安全；支持字符串常量池（节省内存）；Hash 值可缓存（适合做 Map 的 key）。</li>
+</ul>
+</li>
+<li><strong>字符串常量池</strong>：<ul>
+<li><code>String s = &quot;abc&quot;</code>：若池中有则直接返回引用，无则创建并放入池。</li>
+<li><code>new String(&quot;abc&quot;)</code>：在堆中创建对象，且确保池中也有 “abc”。</li>
+</ul>
+</li>
+</ul>
+<p><strong>辅助类</strong>：</p>
+<ul>
+<li><code>StringBuilder</code>：可变，<strong>线程不安全</strong>，效率高。</li>
+<li><code>StringBuffer</code>：可变，<strong>线程安全</strong>（方法加了 synchronized），效率低。</li>
+</ul>
+<p><strong>问题</strong>：</p>
+<ul>
+<li><strong>String s &#x3D; new String(“a”) + new String(“b”) 创建了几个对象？</strong><ul>
+<li>涉及 StringBuilder、常量池中的 “a”, “b” 以及堆中的实例，情况较复杂，重点在于理解拼接底层是 StringBuilder。</li>
+</ul>
+</li>
+</ul>
+<h2 id="集合-Collections"><a href="#集合-Collections" class="headerlink" title="集合 (Collections)"></a>集合 (Collections)</h2><p><strong>体系结构</strong>：</p>
+<ul>
+<li><code>Collection</code> (接口):<ul>
+<li><code>List</code> (有序，可重复): <code>ArrayList</code>, <code>LinkedList</code>, <code>Vector</code>.</li>
+<li><code>Set</code> (无序，唯一): <code>HashSet</code>, <code>TreeSet</code>, <code>LinkedHashSet</code>.</li>
+<li><code>Queue</code>: <code>PriorityQueue</code>, <code>ArrayDeque</code>.</li>
+</ul>
+</li>
+<li><code>Map</code> (键值对，Key 唯一): <code>HashMap</code>, <code>TreeMap</code>, <code>Hashtable</code>, <code>ConcurrentHashMap</code>.</li>
+</ul>
+<p><strong>核心实现</strong>：</p>
+<ul>
+<li><strong>ArrayList</strong>:<ul>
+<li>底层：动态数组 <code>Object[]</code>。</li>
+<li>特点：随机访问快 (O(1))，插入删除慢 (涉及扩容和拷贝)。</li>
+<li>扩容：默认初始容量 10，扩容为原来的 1.5 倍。</li>
+</ul>
+</li>
+<li><strong>LinkedList</strong>:<ul>
+<li>底层：双向链表。</li>
+<li>特点：插入删除快，随机访问慢。</li>
+</ul>
+</li>
+<li><strong>HashMap</strong>:<ul>
+<li><strong>底层</strong>：数组 + 链表 + 红黑树 (JDK 8)。</li>
+<li><strong>put 流程</strong>：计算 Key 的 hash -&gt; 确定数组下标 -&gt; 碰撞处理（链表长度 &gt; 8 且数组长度 &gt; 64 转红黑树）。</li>
+<li><strong>扩容</strong>：负载因子 0.75，每次扩容 2 倍。需要重新哈希 (rehash)。</li>
+<li><strong>线程安全</strong>：不安全。多线程扩容可能死循环 (JDK 7) 或数据丢失 (JDK 8)。</li>
+</ul>
+</li>
+<li><strong>ConcurrentHashMap</strong>:<ul>
+<li><strong>JDK 7</strong>: 分段锁 (Segment)，锁粒度较大。</li>
+<li><strong>JDK 8</strong>: <code>Node</code>数组 + CAS + <code>synchronized</code> (锁桶头结点)，锁粒度更细，并发度高。</li>
+</ul>
+</li>
+</ul>
+<h2 id="泛型-Generics"><a href="#泛型-Generics" class="headerlink" title="泛型 (Generics)"></a>泛型 (Generics)</h2><p><strong>定义</strong>：参数化类型。在编译时检查类型安全，避免强制类型转换。</p>
+<p><strong>特性</strong>：</p>
+<ul>
+<li>**类型擦除 (Type Erasure)**：Java 泛型是伪泛型。在编译后的字节码中，泛型信息会被擦除（通常变为 Object 或上限类型），运行时 JVM 不知道泛型具体类型。<ul>
+<li>这也是为什么 <code>List&lt;String&gt;</code> 不能赋值给 <code>List&lt;Object&gt;</code> (不协变)，也不能 <code>new T()</code>。</li>
+</ul>
+</li>
+<li><strong>通配符</strong>：<ul>
+<li><code>? extends T</code> (上界): 只能读，不能写 (除了 null)。适用于<strong>生产者</strong> (Producer)。</li>
+<li><code>? super T</code> (下界): 只能写，读取出来是 Object。适用于<strong>消费者</strong> (Consumer)。</li>
+<li><strong>PECS 原则</strong>: Producer Extends, Consumer Super.</li>
+</ul>
+</li>
+</ul>
+<h2 id="异常-Exception"><a href="#异常-Exception" class="headerlink" title="异常 (Exception)"></a>异常 (Exception)</h2><p><strong>体系结构</strong>：</p>
+<ul>
+<li><code>Throwable</code> (根)<ul>
+<li><code>Error</code>: 严重错误，JVM 无法恢复 (如 <code>OutOfMemoryError</code>, <code>StackOverflowError</code>)。</li>
+<li><code>Exception</code>:<ul>
+<li><strong>Checked Exception (受检异常)</strong>: 编译期强制处理 (try-catch 或 throws)。如 <code>IOException</code>, <code>SQLException</code>。业务逻辑中可预期的异常。</li>
+<li><strong>Unchecked Exception (运行时异常&#x2F;RuntimeException)</strong>: 编译期不检查。如 <code>NullPointerException</code>, <code>IndexOutOfBoundsException</code>。通常是代码逻辑错误。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>关键语法</strong>：</p>
+<ul>
+<li><code>try-catch-finally</code>: <code>finally</code> 块通常一定会执行（除非 System.exit）。</li>
+<li><code>try-with-resources</code> (JDK 7): 自动关闭实现 <code>AutoCloseable</code> 接口的资源 (如 IO 流)，避免内存泄漏。</li>
+</ul>
+<h2 id="反射-Reflection"><a href="#反射-Reflection" class="headerlink" title="反射 (Reflection)"></a>反射 (Reflection)</h2><p><strong>定义</strong>：在运行状态中，动态获取类的信息（属性、方法）并操作对象的能力。</p>
+<p><strong>机制</strong>：通过 <code>Class</code> 对象（字节码文件）反向获取类的元数据。<br><strong>用途</strong>：</p>
+<ul>
+<li>框架核心（Spring IOC&#x2F;AOP）：通过配置动态加载类。</li>
+<li>动态代理。</li>
+<li>JDBC 加载驱动。</li>
+</ul>
+<p><strong>优缺点</strong>：</p>
+<ul>
+<li><strong>优点</strong>：极高的灵活性，动态性。</li>
+<li><strong>缺点</strong>：性能开销大（解释操作，JVM 无法优化）；破坏封装性（可强制访问 private 成员）。</li>
+</ul>
+<h2 id="注解-Annotation"><a href="#注解-Annotation" class="headerlink" title="注解 (Annotation)"></a>注解 (Annotation)</h2><p><strong>定义</strong>：代码里的特殊标记，为代码提供元数据。本身不产生逻辑，需要结合反射或编译器使用。</p>
+<p><strong>分类</strong>：</p>
+<ul>
+<li><strong>标准注解</strong>：<code>@Override</code>, <code>@Deprecated</code>, <code>@SuppressWarnings</code>.</li>
+<li><strong>元注解</strong> (修饰注解的注解):<ul>
+<li><code>@Target</code>: 作用范围 (类, 方法, 字段等)。</li>
+<li><code>@Retention</code>: 生命周期 (<strong>SOURCE</strong>-编译丢弃, <strong>CLASS</strong>-类文件保留, <strong>RUNTIME</strong>-运行时保留&#x2F;反射可读)。</li>
+<li><code>@Documented</code>, <code>@Inherited</code>.</li>
+</ul>
+</li>
+</ul>
+<p><strong>场景</strong>：</p>
+<ul>
+<li>Spring: <code>@Controller</code>, <code>@Service</code>, <code>@Autowired</code>.</li>
+<li>Lombok: <code>@Data</code> (编译期通过注解处理器修改 AST 生成代码).</li>
+</ul>
+<h2 id="静态方法-static"><a href="#静态方法-static" class="headerlink" title="静态方法 (static)"></a>静态方法 (static)</h2><p><strong>定义</strong>：由 <code>static</code> 关键字修饰的方法，属于类而不属于对象。</p>
+<p><strong>特性</strong>：</p>
+<ul>
+<li>随着类的加载而加载，内存中只有一份。</li>
+<li>可以直接通过 <code>类名.方法名()</code> 调用。</li>
+<li><strong>限制</strong>：静态方法中不能使用 <code>this</code> 或 <code>super</code>，不能直接访问非静态成员（因为非静态成员依赖对象实例，而静态方法执行时对象可能未创建）。</li>
+</ul>
+<p><strong>场景</strong>：</p>
+<ul>
+<li><strong>工具类</strong>：<code>Math.max()</code>, <code>Collections.sort()</code>。状态无关，不需要实例化。</li>
+<li><strong>单例模式</strong>：<code>getInstance()</code>。</li>
+</ul>
+<h2 id="JVM-简单速记-补充"><a href="#JVM-简单速记-补充" class="headerlink" title="JVM 简单速记 (补充)"></a>JVM 简单速记 (补充)</h2><p>**内存区域 (Runtime Data Area)**：</p>
+<ul>
+<li><strong>线程私有</strong>：<ul>
+<li><strong>程序计数器</strong>：当前线程执行的字节码行号。</li>
+<li><strong>虚拟机栈</strong>：Java 方法执行的栈帧（局部变量表、操作数栈等）。异常：StackOverflowError。</li>
+<li><strong>本地方法栈</strong>：Native 方法。</li>
+</ul>
+</li>
+<li><strong>线程共享</strong>：<ul>
+<li>**堆 (Heap)**：存放对象实例。GC 的主要区域。异常：OOM。</li>
+<li>**方法区 (Method Area)**：存放类信息、常量、静态变量。实现：永久代(JDK 7) -&gt; 元空间(JDK 8, 使用本地内存)。</li>
+</ul>
+</li>
+</ul>
+<p><strong>类加载机制</strong>：</p>
+<ul>
+<li><strong>过程</strong>：加载 -&gt; 验证 -&gt; 准备 -&gt; 解析 -&gt; 初始化。</li>
+<li><strong>双亲委派模型</strong>：<ul>
+<li>Bootstrap (启动类加载器) &lt;- Extension (扩展) &lt;- Application (应用)。</li>
+<li><strong>机制</strong>：收到请求先委派给父类加载，父类找不到自己才加载。</li>
+<li><strong>目的</strong>：安全（防止篡改核心库），避免重复加载。</li>
+<li><strong>打破</strong>：Tomcat, SPI 机制。</li>
+</ul>
+</li>
+</ul>
+<h2 id="代理-Proxy"><a href="#代理-Proxy" class="headerlink" title="代理 (Proxy)"></a>代理 (Proxy)</h2><p><strong>定义</strong>：为其他对象提供一种代理以控制对这个对象的访问。</p>
+<p><strong>分类</strong>：</p>
+<ul>
+<li><strong>静态代理</strong>：<ul>
+<li>编译期确定代理类。一个代理类对应一个目标类，代码冗余。</li>
+</ul>
+</li>
+<li><strong>动态代理</strong> (运行时生成)：<ul>
+<li><strong>JDK 动态代理</strong>：基于接口。利用反射机制生成一个实现代理接口的匿名类，在调用具体方法前调用 <code>InvokeHandler</code> 来处理。</li>
+<li><strong>CGLIB 动态代理</strong>：基于继承。利用 ASM 开源包，对代理对象类的 class 文件加载进来，通过修改其字节码生成子类来处理。</li>
+</ul>
+</li>
+</ul>
+<p><strong>区别&#x2F;选择</strong>：</p>
+<ul>
+<li>JDK 动态代理只能代理实现了接口的类。</li>
+<li>CGLIB 可以代理未实现接口的类（但不能代理 final 类）。</li>
+</ul>
+<p><strong>场景</strong>：</p>
+<ul>
+<li>Spring AOP (面向切面编程) 的核心。</li>
+<li>RPC 框架 (远程过程调用)。</li>
+<li>事务控制、日志记录、权限校验。</li>
+</ul>
+<h2 id="IO-Input-Output"><a href="#IO-Input-Output" class="headerlink" title="IO (Input&#x2F;Output)"></a>IO (Input&#x2F;Output)</h2><p><strong>体系结构</strong>：</p>
+<ul>
+<li>**BIO (Blocking IO)**：同步阻塞。传统的 <code>java.io</code> 包。一个连接一个线程。</li>
+<li>**NIO (Non-blocking IO)**：同步非阻塞。<code>java.nio</code> 包。基于 <strong>Channel (通道)</strong>, <strong>Buffer (缓冲区)</strong>, **Selector (选择器)**。<ul>
+<li><strong>Selector</strong>：多路复用器，一个线程可以管理多个 Channel。</li>
+</ul>
+</li>
+<li>**AIO (Asynchronous IO)**：异步非阻塞。<code>java.nio.channels.AsynchronousSocketChannel</code>。基于回调机制。</li>
+</ul>
+<p><strong>场景</strong>：</p>
+<ul>
+<li><strong>BIO</strong>：连接数目小且固定的架构。</li>
+<li><strong>NIO</strong>：连接数目多且连接比较短（轻操作）的架构。如：聊天服务器，Tomcat (默认)。</li>
+<li><strong>AIO</strong>：连接数目多且连接比较长（重操作）的架构。</li>
+</ul>
+<p><strong>问题</strong>：</p>
+<ul>
+<li><strong>select, poll, epoll 的区别？</strong> (底层 OS 机制)<ul>
+<li><code>select</code>&#x2F;<code>poll</code>：轮询所有连接，效率随连接数增加而下降。</li>
+<li><code>epoll</code>：基于事件驱动 (callback)，只处理活跃连接，效率高。NIO 在 Linux 上底层使用 epoll。</li>
+</ul>
+</li>
+</ul>
+<h2 id="序列化-Serialization"><a href="#序列化-Serialization" class="headerlink" title="序列化 (Serialization)"></a>序列化 (Serialization)</h2><p><strong>定义</strong>：</p>
+<ul>
+<li><strong>序列化</strong>：将对象转换为字节序列的过程。</li>
+<li><strong>反序列化</strong>：将字节序列恢复为对象的过程。</li>
+</ul>
+<p><strong>机制</strong>：</p>
+<ul>
+<li>实现 <code>java.io.Serializable</code> 接口 (标记接口，无方法)。</li>
+<li><strong>serialVersionUID</strong>：版本号。若反序列化时 ID 不一致，抛出 <code>InvalidClassException</code>。</li>
+<li><strong>transient 关键字</strong>：修饰的变量不会被序列化 (如密码等敏感字段)。</li>
+</ul>
+<p>**替代方案 (序列化协议)**：</p>
+<ul>
+<li>JDK 原生序列化：性能差，体积大，不仅跨语言。</li>
+<li><strong>JSON</strong> (Jackson, Gson): 可读性好，跨语言，但体积较大。</li>
+<li><strong>Protobuf</strong> (Google): 二进制，性能高，体积小，跨语言，需定义 <code>.proto</code> 文件。</li>
+<li><strong>Hessian</strong>: 二进制，支持跨语言，RPC 框架常用。</li>
+</ul>
+<p><strong>坑</strong>：</p>
+<ul>
+<li>反序列化时<strong>不会</strong>调用构造方法。</li>
+<li>单例模式若被序列化&#x2F;反序列化，会破坏单例 (需实现 <code>readResolve</code> 方法)。</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://Zane-Woo.github.io">Zane Woo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://zane-woo.github.io/2025/12/20/java%E5%9F%BA%E7%A1%80%E5%85%AB%E8%82%A1%E9%80%9F%E8%AE%B0/">https://zane-woo.github.io/2025/12/20/java%E5%9F%BA%E7%A1%80%E5%85%AB%E8%82%A1%E9%80%9F%E8%AE%B0/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%85%AB%E8%82%A1/">八股</a><a class="post-meta__tags" href="/tags/javaguide/">javaguide</a><a class="post-meta__tags" href="/tags/java/">java</a></div><div class="post-share"><div class="social-share" data-image="/img/img3.webp" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2025/12/13/socket%E5%AD%A6%E4%B9%A0%E8%B7%AF%E7%BA%BF/" title="socket学习路线"><img class="cover" src="/img/img0.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post" loading='lazy'><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">socket学习路线</div></div><div class="info-2"><div class="info-item-1">ai给的学习路线</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Zane Woo</div><div class="author-info-description">在路上</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">6</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">8</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Zane-Woo"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Zane-Woo" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:wuz33631@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="https://space.bilibili.com/3546378057812838" target="_blank" title="Bilibili"><i class="fab fa-bilibili" style="color: #00A1D6;"></i></a><a class="social-icon" href="https://steamcommunity.com/id/76561199534301889" target="_blank" title="Steam"><i class="fab fa-steam" style="color: #000000;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Hi!🙂 I`m Zane. <br>🎉 感谢访问我的个人博客<br>💡 欢迎留言交流</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Java%E7%A8%8B%E5%BA%8F%E7%9A%84%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">Java程序的执行过程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%97%E8%8A%82%E7%A0%81"><span class="toc-number">2.</span> <span class="toc-text">字节码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%B1%BB%E4%B8%8E%E6%8E%A5%E5%8F%A3"><span class="toc-number">3.</span> <span class="toc-text">类与接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AF%B9%E8%B1%A1-Object"><span class="toc-number">4.</span> <span class="toc-text">对象 (Object)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8C%85%E8%A3%85%E7%B1%BB"><span class="toc-number">5.</span> <span class="toc-text">包装类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#String-%E5%AD%97%E7%AC%A6%E4%B8%B2"><span class="toc-number">6.</span> <span class="toc-text">String (字符串)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9B%86%E5%90%88-Collections"><span class="toc-number">7.</span> <span class="toc-text">集合 (Collections)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B3%9B%E5%9E%8B-Generics"><span class="toc-number">8.</span> <span class="toc-text">泛型 (Generics)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%82%E5%B8%B8-Exception"><span class="toc-number">9.</span> <span class="toc-text">异常 (Exception)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%8D%E5%B0%84-Reflection"><span class="toc-number">10.</span> <span class="toc-text">反射 (Reflection)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B3%A8%E8%A7%A3-Annotation"><span class="toc-number">11.</span> <span class="toc-text">注解 (Annotation)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9D%99%E6%80%81%E6%96%B9%E6%B3%95-static"><span class="toc-number">12.</span> <span class="toc-text">静态方法 (static)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JVM-%E7%AE%80%E5%8D%95%E9%80%9F%E8%AE%B0-%E8%A1%A5%E5%85%85"><span class="toc-number">13.</span> <span class="toc-text">JVM 简单速记 (补充)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%A3%E7%90%86-Proxy"><span class="toc-number">14.</span> <span class="toc-text">代理 (Proxy)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IO-Input-Output"><span class="toc-number">15.</span> <span class="toc-text">IO (Input&#x2F;Output)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BA%8F%E5%88%97%E5%8C%96-Serialization"><span class="toc-number">16.</span> <span class="toc-text">序列化 (Serialization)</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/12/20/java%E5%9F%BA%E7%A1%80%E5%85%AB%E8%82%A1%E9%80%9F%E8%AE%B0/" title="java基础八股速记.md"><img src="/img/img3.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="java基础八股速记.md"/ loading='lazy'></a><div class="content"><a class="title" href="/2025/12/20/java%E5%9F%BA%E7%A1%80%E5%85%AB%E8%82%A1%E9%80%9F%E8%AE%B0/" title="java基础八股速记.md">java基础八股速记.md</a><time datetime="2025-12-20T05:02:07.000Z" title="Created 2025-12-20 13:02:07">2025-12-20</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/13/socket%E5%AD%A6%E4%B9%A0%E8%B7%AF%E7%BA%BF/" title="socket学习路线"><img src="/img/img0.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="socket学习路线"/ loading='lazy'></a><div class="content"><a class="title" href="/2025/12/13/socket%E5%AD%A6%E4%B9%A0%E8%B7%AF%E7%BA%BF/" title="socket学习路线">socket学习路线</a><time datetime="2025-12-13T04:28:06.000Z" title="Created 2025-12-13 12:28:06">2025-12-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/12/socket%E6%8E%A2%E7%A9%B6/" title="socket探究"><img src="/img/img4.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="socket探究"/ loading='lazy'></a><div class="content"><a class="title" href="/2025/12/12/socket%E6%8E%A2%E7%A9%B6/" title="socket探究">socket探究</a><time datetime="2025-12-12T14:41:10.000Z" title="Created 2025-12-12 22:41:10">2025-12-12</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/10/%E4%B8%8A%E6%B5%B7%E6%B8%B8%E8%AE%B0/" title="上海游记"><img src="/img/img2.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="上海游记"/ loading='lazy'></a><div class="content"><a class="title" href="/2025/12/10/%E4%B8%8A%E6%B5%B7%E6%B8%B8%E8%AE%B0/" title="上海游记">上海游记</a><time datetime="2025-12-09T16:05:14.000Z" title="Created 2025-12-10 00:05:14">2025-12-10</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/07/%E4%B8%BA%E4%BB%80%E4%B9%88%E5%86%99%E5%8D%9A%E5%AE%A2/" title="为什么写博客"><img src="/img/img2.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="为什么写博客"/ loading='lazy'></a><div class="content"><a class="title" href="/2025/12/07/%E4%B8%BA%E4%BB%80%E4%B9%88%E5%86%99%E5%8D%9A%E5%AE%A2/" title="为什么写博客">为什么写博客</a><time datetime="2025-12-07T11:08:40.000Z" title="Created 2025-12-07 19:08:40">2025-12-07</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/img4.webp);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Zane Woo</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'Zane-Woo/Zane-Woo.github.io',
+      'data-repo-id': 'R_kgDOQkAk7Q',
+      'data-category-id': 'DIC_kwDOQkAk7c4Czfzm',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !false) {
+    if (false) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-heart.min.js" async="async" mobile="false"></script><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-show-text.min.js" data-mobile="false" data-text="luck++,芝士++,喵,喵喵,喵喵喵" data-fontsize="15px" data-random="true" async="async"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["meta[property=\"og:image\"]","meta[property=\"og:title\"]","meta[property=\"og:url\"]","meta[property=\"og:description\"]","link[rel=\"canonical\"]","head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      false
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script></div></body></html>
