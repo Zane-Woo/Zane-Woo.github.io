@@ -1,8 +1,9 @@
 (function () {
-  function doInit() {
+  function doInitOnce() {
     if (!window.svgPanZoom) return;
 
-    var svgs = document.querySelectorAll('.mermaid-wrap > svg');
+    // Butterfly 渲染 Mermaid 时，svg 通常不是 mermaid-wrap 的直接子元素
+    var svgs = document.querySelectorAll('.mermaid-wrap svg');
     if (!svgs || !svgs.length) return;
 
     svgs.forEach(function (svg) {
@@ -10,6 +11,10 @@
       svg.setAttribute('data-panzoom', '1');
 
       try {
+        // 避免 svg 被布局挤压/不可点击
+        svg.style.maxWidth = '100%';
+        svg.style.height = 'auto';
+
         window.svgPanZoom(svg, {
           zoomEnabled: true,
           controlIconsEnabled: true,
@@ -29,8 +34,21 @@
   }
 
   function init() {
-    // Mermaid 可能会在 DOMReady 后异步渲染 SVG，这里延迟一拍更稳
-    setTimeout(doInit, 50);
+    // Mermaid 是异步渲染：这里做短暂重试，直到 svg 出现
+    var maxTry = 20;
+    var tryCount = 0;
+
+    var tick = function () {
+      tryCount += 1;
+      doInitOnce();
+
+      var hasSvg = document.querySelectorAll('.mermaid-wrap svg').length > 0;
+      if (!hasSvg && tryCount < maxTry) {
+        setTimeout(tick, 150);
+      }
+    };
+
+    setTimeout(tick, 50);
   }
 
   if (document.readyState === 'loading') {
