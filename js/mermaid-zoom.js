@@ -8,8 +8,8 @@
       var panZoom = window.svgPanZoom(svg, {
         zoomEnabled: true,
         controlIconsEnabled: true,
-        fit: true,
-        center: true,
+        fit: false,
+        center: false,
         minZoom: 0.2,
         maxZoom: 20,
         zoomScaleSensitivity: 0.3,
@@ -18,19 +18,51 @@
         preventMouseEventsDefault: true
       });
 
-      // Mermaid 渲染 + 布局稳定后再强制 fit/center，避免只显示一角
-      var refit = function () {
+      // Mermaid 的 SVG 往往 viewBox 很大 + 还有留白；用 fit() 会同时约束高度，导致初始“窗口很小”
+      // 这里改成“按宽度铺满”的初始缩放（fit-to-width），再居中。
+      var fitToWidth = function () {
         try {
           panZoom.resize();
-          panZoom.fit();
+          var viewport = svg.querySelector('.svg-pan-zoom_viewport');
+          var bbox = viewport ? viewport.getBBox() : svg.getBBox();
+          var w = svg.clientWidth || svg.getBoundingClientRect().width;
+          if (!bbox || !bbox.width || !w) {
+            panZoom.fit();
+            panZoom.center();
+            return;
+          }
+
+          // 留一点点边距，避免刚好贴边
+          var zoom = (w / bbox.width) * 0.98;
+          if (zoom < 0.2) zoom = 0.2;
+          if (zoom > 20) zoom = 20;
+
+          panZoom.zoom(zoom);
           panZoom.center();
+          svg.dataset.panzoomInitialZoom = String(zoom);
         } catch (e) {
           // noop
         }
       };
-      setTimeout(refit, 0);
-      setTimeout(refit, 250);
-      window.addEventListener('resize', refit);
+
+      // 初始两次：一拍立即 + 一拍等布局稳定
+      setTimeout(fitToWidth, 0);
+      setTimeout(fitToWidth, 250);
+
+      // resize 时：如果用户没手动缩放（还在初始 zoom 附近），就重新 fit-to-width；否则不打扰
+      window.addEventListener('resize', function () {
+        try {
+          panZoom.resize();
+          var initial = parseFloat(svg.dataset.panzoomInitialZoom || '');
+          if (!initial) return;
+          var cur = panZoom.getZoom();
+          if (Math.abs(cur - initial) < 0.02) {
+            fitToWidth();
+          }
+        } catch (e) {
+          // noop
+        }
+      });
     } catch (e) {
       // noop
     }
