@@ -1,54 +1,62 @@
 (function () {
-  function doInitOnce() {
+  function initOne(svg) {
     if (!window.svgPanZoom) return;
+    if (!svg || svg.getAttribute('data-panzoom') === '1') return;
+    svg.setAttribute('data-panzoom', '1');
 
-    // Butterfly 渲染 Mermaid 时，svg 通常不是 mermaid-wrap 的直接子元素
-    var svgs = document.querySelectorAll('.mermaid-wrap svg');
-    if (!svgs || !svgs.length) return;
+    try {
+      var panZoom = window.svgPanZoom(svg, {
+        zoomEnabled: true,
+        controlIconsEnabled: true,
+        fit: true,
+        center: true,
+        minZoom: 0.2,
+        maxZoom: 20,
+        zoomScaleSensitivity: 0.3,
+        mouseWheelZoomEnabled: true,
+        dblClickZoomEnabled: true,
+        preventMouseEventsDefault: true
+      });
 
-    svgs.forEach(function (svg) {
-      if (!svg || svg.getAttribute('data-panzoom') === '1') return;
-      svg.setAttribute('data-panzoom', '1');
-
-      try {
-        // 避免 svg 被布局挤压/不可点击
-        svg.style.maxWidth = '100%';
-        svg.style.height = 'auto';
-
-        window.svgPanZoom(svg, {
-          zoomEnabled: true,
-          controlIconsEnabled: true,
-          fit: true,
-          center: true,
-          minZoom: 0.2,
-          maxZoom: 20,
-          zoomScaleSensitivity: 0.3,
-          mouseWheelZoomEnabled: true,
-          dblClickZoomEnabled: true,
-          preventMouseEventsDefault: true
-        });
-      } catch (e) {
-        // noop
-      }
-    });
+      // Mermaid 渲染 + 布局稳定后再强制 fit/center，避免只显示一角
+      var refit = function () {
+        try {
+          panZoom.resize();
+          panZoom.fit();
+          panZoom.center();
+        } catch (e) {
+          // noop
+        }
+      };
+      setTimeout(refit, 0);
+      setTimeout(refit, 250);
+      window.addEventListener('resize', refit);
+    } catch (e) {
+      // noop
+    }
   }
 
   function init() {
-    // Mermaid 是异步渲染：这里做短暂重试，直到 svg 出现
-    var maxTry = 20;
-    var tryCount = 0;
+    if (!window.svgPanZoom) return;
 
-    var tick = function () {
-      tryCount += 1;
-      doInitOnce();
+    // Butterfly 渲染 Mermaid 时，svg 可能异步插入；这里主动扫描一次
+    var svgs = document.querySelectorAll('.mermaid-wrap svg');
+    if (svgs && svgs.length) {
+      svgs.forEach(initOne);
+    }
 
-      var hasSvg = document.querySelectorAll('.mermaid-wrap svg').length > 0;
-      if (!hasSvg && tryCount < maxTry) {
-        setTimeout(tick, 150);
-      }
-    };
+    // 再用 MutationObserver 兜底，保证“后插入”的 svg 也能初始化
+    var container = document.getElementById('article-container') || document.body;
+    if (!container || container.getAttribute('data-mermaid-observed') === '1') return;
+    container.setAttribute('data-mermaid-observed', '1');
 
-    setTimeout(tick, 50);
+    var obs = new MutationObserver(function () {
+      var list = document.querySelectorAll('.mermaid-wrap svg');
+      if (!list || !list.length) return;
+      list.forEach(initOne);
+    });
+
+    obs.observe(container, { childList: true, subtree: true });
   }
 
   if (document.readyState === 'loading') {
