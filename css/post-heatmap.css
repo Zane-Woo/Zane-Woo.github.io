@@ -53,6 +53,95 @@
   outline: none;
 }
 
+/* 🐍 贪吃蛇动画样式 - 优化版 */
+.post-heatmap__day.snake-head {
+  position: relative;
+  animation: snake-head-pulse 0.6s ease-in-out infinite alternate;
+  z-index: 10;
+}
+
+/* 蛇头发光效果 */
+.post-heatmap__day.snake-head::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #ff6b2b, #ff8c42);
+  box-shadow: 
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 0 15px 3px rgba(255, 107, 43, 0.8),
+    inset 0 0 10px rgba(255, 255, 255, 0.4);
+  z-index: -1;
+}
+
+[data-theme="dark"] .post-heatmap__day.snake-head::after {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  box-shadow: 
+    0 0 0 2px rgba(255, 215, 0, 0.9),
+    0 0 20px 4px rgba(255, 215, 0, 0.9),
+    inset 0 0 12px rgba(255, 255, 255, 0.5);
+}
+
+/* 蛇头呼吸动画 */
+@keyframes snake-head-pulse {
+  0% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1.25);
+  }
+}
+
+/* 蛇身渐变效果 */
+.post-heatmap__day.snake-body {
+  --opacity: var(--snake-opacity, 0.8);
+  position: relative;
+  animation: snake-body-glow 0.8s ease-in-out infinite alternate;
+  z-index: 5;
+}
+
+.post-heatmap__day.snake-body::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, rgba(74, 158, 255, var(--opacity)), rgba(99, 179, 255, var(--opacity)));
+  box-shadow: 
+    0 0 0 1.5px rgba(255, 255, 255, calc(var(--opacity) * 0.7)),
+    0 0 calc(var(--opacity) * 12px) calc(var(--opacity) * 3px) rgba(74, 158, 255, calc(var(--opacity) * 0.7)),
+    inset 0 0 8px rgba(255, 255, 255, calc(var(--opacity) * 0.3));
+  z-index: -1;
+}
+
+[data-theme="dark"] .post-heatmap__day.snake-body::after {
+  background: linear-gradient(135deg, rgba(0, 255, 255, var(--opacity)), rgba(64, 224, 208, var(--opacity)));
+  box-shadow: 
+    0 0 0 1.5px rgba(0, 255, 255, calc(var(--opacity) * 0.6)),
+    0 0 calc(var(--opacity) * 15px) calc(var(--opacity) * 4px) rgba(0, 255, 255, calc(var(--opacity) * 0.8)),
+    inset 0 0 10px rgba(255, 255, 255, calc(var(--opacity) * 0.4));
+}
+
+/* 蛇身闪烁动画 */
+@keyframes snake-body-glow {
+  0% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1.12);
+  }
+}
+
+/* 鼠标悬停时隐藏蛇 */
+.post-heatmap:hover .post-heatmap__day.snake-head,
+.post-heatmap:hover .post-heatmap__day.snake-body {
+  animation: none;
+}
+
+.post-heatmap:hover .post-heatmap__day.snake-head::after,
+.post-heatmap:hover .post-heatmap__day.snake-body::after {
+  display: none;
+}
+
 .post-heatmap__legend {
   display: flex;
   align-items: center;
