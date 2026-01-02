@@ -1,0 +1,869 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>手写spring-day6 | Zane</title><meta name="author" content="Zane Woo"><meta name="copyright" content="Zane Woo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="自动预实例化所有Bean，并实现ApplicationContext，实现扩展接口。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="手写spring-day6">
+<meta property="og:url" content="https://zane-woo.github.io/2025/12/29/%E6%89%8B%E5%86%99spring-day6/index.html">
+<meta property="og:site_name" content="Zane">
+<meta property="og:description" content="自动预实例化所有Bean，并实现ApplicationContext，实现扩展接口。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zane-woo.github.io/img/img0.webp">
+<meta property="article:published_time" content="2025-12-29T09:06:33.000Z">
+<meta property="article:modified_time" content="2026-01-02T08:24:00.607Z">
+<meta property="article:author" content="Zane Woo">
+<meta property="article:tag" content="coding">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zane-woo.github.io/img/img0.webp"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "手写spring-day6",
+  "url": "https://zane-woo.github.io/2025/12/29/%E6%89%8B%E5%86%99spring-day6/",
+  "image": "https://zane-woo.github.io/img/img0.webp",
+  "datePublished": "2025-12-29T09:06:33.000Z",
+  "dateModified": "2026-01-02T08:24:00.607Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Zane Woo",
+      "url": "https://Zane-Woo.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://zane-woo.github.io/2025/12/29/%E6%89%8B%E5%86%99spring-day6/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.json","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"No results found for: ${query}","hits_stats":"${hits} articles found"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '手写spring-day6',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="preload" as="image" href="/img/img0.webp"><link rel="preload" as="image" href="/img/avatar2.webp"><link rel="preload" as="image" href="/img/img3.webp"><link rel="preload" as="image" href="/img/img4.webp"><link rel="preload" as="image" href="/img/img5.webp"><link rel="preload" as="image" href="/img/img6.webp"><link rel="preload" as="image" href="/img/img7.webp"><link rel="dns-prefetch" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//cdn.jsdelivr.net" crossorigin><style>#site-info::before{content:"";display:block;width:150px;height:150px;margin:0 auto 30px;border-radius:50%;background:url(/img/avatar.webp) center/cover;border:3px solid rgba(255,255,255,0.8);box-shadow:0 5px 20px rgba(0,0,0,0.3);}</style><style>.card-widget,.recent-post-item{background:rgba(255,255,255,0.75)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;border:1px solid rgba(255,255,255,0.3)!important;box-shadow:0 8px 32px rgba(0,0,0,0.1)!important;}[data-theme="dark"] .card-widget,[data-theme="dark"] .recent-post-item{background:rgba(0,0,0,0.5)!important;border:1px solid rgba(255,255,255,0.1)!important;}</style><style>*,html,body{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/cursor.png'),auto!important;}a,button,input[type="submit"],input[type="button"],.btn,.pointer,[role="button"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/pointer.png'),pointer!important;}input:not([type="submit"]):not([type="button"]),textarea,[contenteditable="true"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/text.png'),text!important;}.disabled,[disabled]{cursor:not-allowed!important;}</style><meta name="generator" content="Hexo 7.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">Loading...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="web_bg" style="background-image: url(/img/img3.webp);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">13</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/img0.webp);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Zane</span></a><a class="nav-page-title" href="/"><span class="site-name">手写spring-day6</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">手写spring-day6</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2025-12-29T09:06:33.000Z" title="Created 2025-12-29 17:06:33">2025-12-29</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-01-02T08:24:00.607Z" title="Updated 2026-01-02 16:24:00">2026-01-02</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/">学习</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/">coding</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/">java</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/%E7%BC%96%E7%A0%81/">编码</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/%E7%BC%96%E7%A0%81/mini-spring/">mini-spring</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">Word Count:</span><span class="word-count">3.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">Reading Time:</span><span>13mins</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="umamiPV" data-path="/2025/12/29/%E6%89%8B%E5%86%99spring-day6/"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>这次 coding 很吃力，两天才敲完，当然有我拖延的原因 🤣 但是还得吐槽一句这个 bugstack 的文章写的太 💩 了。他仅仅是把一些核心的改动讲解一下，而且讲解的大多停留在功能逻辑的介绍上，却忽略对于类或接口的设计，而且经常会新增或者修改一些类或者接口的实现，这导致我再把实现的过程中必须时常去翻他的源码对照着敲，不仅费时费力，而且常常让我对这些莫名其妙的修改而困惑。总之，这人的文章质量不是很高。</p>
+<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>这次的更新是针对两点</p>
+<ul>
+<li>提供可由开发者自定义的对于 Bean 的扩展接口，以便让开发者能够在不同的时机，例如：BeanDefinition 加载后，Bean 属性注入之后或者是 Bean 的 init 方法执行前后去执行一些自定义的逻辑（修改 BeanDefinition&#x2F;Bean 亦或是执行一些如前置校验的逻辑）。</li>
+<li>预实例化：仿照 spring 的做法在传入配置路径的就提前将所有的 Bean 加载到内存中（提前检查错误，加快程序响应）</li>
+</ul>
+<p>如果要达成第一点，要解决的问题是：要想在这些 <strong>时机</strong> 实现自定义逻辑 ，必然需要将这些时机抽象出来并编排成一个标准化的流程（由若干个函数组成），并在这个流程的各个时机插入一些特殊处理的接口。而要达到第二点必须在第一点的基础上，将预实例化加入这个 sop 中，传入配置路径后便可达到目的。直接实现但是问题是原本的 BeanFactory 仅仅负责 BeanDefinition 以及 Bean 的存储以及单个 Bean 的实例化操作，而且之前的 Bean 都是只有在 <code>getBean</code> 后才会去加载，是被动地、懒加载的。<strong>为了实现流程的统一编排</strong>，我们必须抽象出一个更高层的类&#x2F;接口来完成这一个工作。也就自然而然地引出了 <strong><code>ApplicationContext</code></strong></p>
+<h1 id="类和接口的设计"><a href="#类和接口的设计" class="headerlink" title="类和接口的设计"></a>类和接口的设计</h1><h2 id="BeanFactory-结构框架图"><a href="#BeanFactory-结构框架图" class="headerlink" title="BeanFactory 结构框架图"></a>BeanFactory 结构框架图</h2><div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    classDiagram
+  direction TB
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; 顶层：BeanFactory 能力接口族 &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class BeanFactory { &lt;&lt;interface&gt;&gt; }
+  class HierarchicalBeanFactory { &lt;&lt;interface&gt;&gt; }
+  class ListableBeanFactory { &lt;&lt;interface&gt;&gt; }
+  class AutowireCapableBeanFactory { &lt;&lt;interface&gt;&gt; }
+  class ConfigurableBeanFactory { &lt;&lt;interface&gt;&gt; }
+  class ConfigurableListableBeanFactory { &lt;&lt;interface&gt;&gt; }
+
+  BeanFactory &lt;|-- HierarchicalBeanFactory
+  BeanFactory &lt;|-- ListableBeanFactory
+  BeanFactory &lt;|-- AutowireCapableBeanFactory
+  HierarchicalBeanFactory &lt;|-- ConfigurableBeanFactory
+  ConfigurableBeanFactory &lt;|-- ConfigurableListableBeanFactory
+  ListableBeanFactory &lt;|-- ConfigurableListableBeanFactory
+  AutowireCapableBeanFactory &lt;|-- ConfigurableListableBeanFactory
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; 核心数据模型 &#x2F; 扩展点 &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class BeanDefinition
+  class BeanPostProcessor { &lt;&lt;interface&gt;&gt; }
+  class BeanFactoryPostProcessor { &lt;&lt;interface&gt;&gt; }
+
+  ConfigurableBeanFactory ..&gt; BeanPostProcessor : add&#x2F;hold
+  BeanFactoryPostProcessor ..&gt; ConfigurableListableBeanFactory : postProcess
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; 单例缓存 &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class SingletonBeanRegistry { &lt;&lt;interface&gt;&gt; }
+  class DefaultSingletonBeanRegistry
+
+  SingletonBeanRegistry &lt;|.. DefaultSingletonBeanRegistry
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; 核心实现链（support）&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class AbstractBeanFactory { &lt;&lt;abstract&gt;&gt; }
+  class AbstractAutowireCapableBeanFactory { &lt;&lt;abstract&gt;&gt; }
+  class DefaultListableBeanFactory
+
+  DefaultSingletonBeanRegistry &lt;|-- AbstractBeanFactory
+  ConfigurableBeanFactory &lt;|.. AbstractBeanFactory
+
+  AbstractBeanFactory ..&gt; BeanDefinition : getBeanDefinition()
+  AbstractBeanFactory &lt;|-- AbstractAutowireCapableBeanFactory
+  AutowireCapableBeanFactory &lt;|.. AbstractAutowireCapableBeanFactory
+
+  AbstractAutowireCapableBeanFactory ..&gt; BeanPostProcessor : applyBefore&#x2F;After
+  AbstractAutowireCapableBeanFactory ..&gt; BeanDefinition : createBean()
+
+  AbstractAutowireCapableBeanFactory &lt;|-- DefaultListableBeanFactory
+  ConfigurableListableBeanFactory &lt;|.. DefaultListableBeanFactory
+  DefaultListableBeanFactory ..&gt; BeanDefinition : store(Map)
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; 注册 BeanDefinition（reader -&gt; registry）&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class BeanDefinitionRegistry { &lt;&lt;interface&gt;&gt; }
+  BeanDefinitionRegistry &lt;|.. DefaultListableBeanFactory
+
+  class BeanDefinitionReader { &lt;&lt;interface&gt;&gt; }
+  class AbstractBeanDefinitionReader { &lt;&lt;abstract&gt;&gt; }
+  class XmlBeanDefinitionReader
+
+  BeanDefinitionReader &lt;|.. AbstractBeanDefinitionReader
+  AbstractBeanDefinitionReader &lt;|-- XmlBeanDefinitionReader
+  XmlBeanDefinitionReader ..&gt; BeanDefinitionRegistry : register
+  XmlBeanDefinitionReader ..&gt; BeanDefinition : build from XML
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; 实例化策略（核心可替换点）&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class InstantiationStrategy { &lt;&lt;interface&gt;&gt; }
+  class SimpleInstantiationStrategy
+  class CglibSubclassingInstantiationStrategy
+
+  InstantiationStrategy &lt;|.. SimpleInstantiationStrategy
+  InstantiationStrategy &lt;|.. CglibSubclassingInstantiationStrategy
+  AbstractAutowireCapableBeanFactory ..&gt; InstantiationStrategy : instantiate
+  </pre></div>
+
+
+
+
+
+<h3 id="BeanFactory-相关实现"><a href="#BeanFactory-相关实现" class="headerlink" title="BeanFactory 相关实现"></a>BeanFactory 相关实现</h3><h4 id="ListableBeanFactory"><a href="#ListableBeanFactory" class="headerlink" title="ListableBeanFactory"></a>ListableBeanFactory</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">ListableBeanFactory</span> <span class="keyword">extends</span> <span class="title class_">BeanFactory</span>&#123;</span><br><span class="line">    &lt;T&gt; Map&lt;String,T&gt; <span class="title function_">getBeansOfTYpe</span><span class="params">(Class&lt;T&gt; requiredType)</span> <span class="keyword">throws</span> BeansException;</span><br><span class="line">    String[] getBeanDefinitionNameStrings() <span class="keyword">throws</span> BeansException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主要的职责是做一些批量的信息获取操作。注意是关注容器内的存储的 Bean 及其 BeanDefinition 的 <strong>统计信息</strong>。</p>
+<h4 id="AutowireCapableBeanFactory"><a href="#AutowireCapableBeanFactory" class="headerlink" title="AutowireCapableBeanFactory"></a>AutowireCapableBeanFactory</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">AutowireCapableBeanFactory</span> <span class="keyword">extends</span> <span class="title class_">BeanFactory</span>&#123;</span><br><span class="line">    Object <span class="title function_">applyBeanPostProcessorsBeforeInitialization</span><span class="params">(Object existingBean, String beanName)</span> <span class="keyword">throws</span> BeansException;</span><br><span class="line"></span><br><span class="line">    Object <span class="title function_">applyBeanPostProcessorsAfterInitialization</span><span class="params">(Object existingBean, String beanName)</span> <span class="keyword">throws</span> BeansException;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>一个 Bean 创建的具体的过程则是这个接口及其衍生类负责的（如 <strong>AbstractAutowireCapableBeanFactory</strong>）。</p>
+<p>目前主要是针对 Bean 的初始化的前后这一生命周期的阶段进行前置和后置的操作。</p>
+<p><del>但是说实话这个命名确实有点迷，从名字上我只能看出来这个这是一个负责自动装配的 BeanFactory。</del></p>
+<h4 id="HierarchicalBeanFactory"><a href="#HierarchicalBeanFactory" class="headerlink" title="HierarchicalBeanFactory"></a>HierarchicalBeanFactory</h4><p>源码中也不多，直接贴出来了，虽然当前还没有实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">HierarchicalBeanFactory</span> <span class="keyword">extends</span> <span class="title class_">BeanFactory</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Return the parent bean factory, or &#123;<span class="doctag">@code</span> null&#125; if there is none.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="comment">//返回本 Bean 工厂的父工厂</span></span><br><span class="line">    BeanFactory <span class="title function_">getParentBeanFactory</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Return whether the local bean factory contains a bean of the given name,</span></span><br><span class="line"><span class="comment">     * ignoring beans defined in ancestor contexts.</span></span><br><span class="line"><span class="comment">     * &lt;p&gt; This is an alternative to &#123;<span class="doctag">@code</span> containsBean&#125;, ignoring a bean</span></span><br><span class="line"><span class="comment">     * of the given name from an ancestor bean factory.</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> name the name of the bean to query</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> whether a bean with the given name is defined in the local factory</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@see</span> BeanFactory#containsBean</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">     <span class="comment">//本地工厂(容器)是否包含这个 Bean</span></span><br><span class="line">    <span class="type">boolean</span> <span class="title function_">containsLocalBean</span><span class="params">(String name)</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个接口的意义是赋予容器的一个 <strong>层级关系</strong>（父子）。具体来说是针对 Factory 的一个层级关系。</p>
+<p>不过要注意的是，<strong>这个父子关系的建立是通过引用而不是通过创建或者持有实现的，而且这个父子关系是针对每一层的 BeanFactory 而言的而不是针对某一层的所有 Bean。</strong></p>
+<p><strong>问题</strong>：<strong>Bean 容器为什么要进行分层呢？或者说分层是为了解决什么问题呢？</strong></p>
+<ul>
+<li>依赖倒置问题： 一个 Bean 可能会依赖另外一个 Bean。但是每个 Bean 的职责和特性不同。所在的分层也不同。正向的依赖关系是指：高层的 Bean 容器会去依赖底层的 Bean 容器（典例 Controller-&gt; Service-&gt; DAO-&gt; String(举例)）。但是反过来就会产生依赖倒置的问题。依赖倒置会引发的问题：<strong>模块难以复用</strong>（引入 Service 层却需要将 Controller 层引入），<strong>关注点模糊</strong>（Service 层只应该关注自己的业务逻辑而不需要关注 Controller 层的实现）<ul>
+<li>高层和底层的判断标准：越接近业务逻辑和用户意图，越具体的 Bean 处于高层，而越具有通用性，越抽象的 Bean 越接近底层。</li>
+</ul>
+</li>
+<li>热启动问题：修改了高层不影响底层的服务运行。</li>
+</ul>
+<h4 id="ConfigurableBeanFactory"><a href="#ConfigurableBeanFactory" class="headerlink" title="ConfigurableBeanFactory"></a>ConfigurableBeanFactory</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">ConfigurableBeanFactory</span> <span class="keyword">extends</span> <span class="title class_">HierarchicalBeanFactory</span>&#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">SCOPE_SINGLETON</span> <span class="operator">=</span> <span class="string">&quot;singleton&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">String</span> <span class="variable">SCOPE_PROTOTYPE</span> <span class="operator">=</span> <span class="string">&quot;prototype&quot;</span>;</span><br><span class="line">      <span class="keyword">void</span> <span class="title function_">addBeanPostProcessor</span><span class="params">(BeanPostProcessor beanPostProcessor)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这个接口的职责是管理 BeanFactory 本身的配置，即与 <strong>Bean 相关的元数据</strong> 的配置如 Bean 的作用域，BeanPOstProcessor 等。</p>
+<p>这个接口可以对照 AutowireBeanFactory 来理解，后者是针对具体的 Bean 创建，前者则是关注所有或某一类的 Bean 的全局配置。</p>
+<h4 id="ConfigurableListableBeanFactory"><a href="#ConfigurableListableBeanFactory" class="headerlink" title="ConfigurableListableBeanFactory"></a>ConfigurableListableBeanFactory</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">ConfigurableListableBeanFactory</span> <span class="keyword">extends</span> <span class="title class_">ConfigurableBeanFactory</span>,AutowireCapableBeanFactory,ListableBeanFactory&#123;</span><br><span class="line">    BeanDefinition <span class="title function_">getBeanDefinition</span><span class="params">(String name)</span> <span class="keyword">throws</span> BeansException;</span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">preInstantiateSingletons</span><span class="params">()</span> <span class="keyword">throws</span> BeansException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Java 的 <strong>接口是支持多继承</strong> 的，这很有趣。这个接口继承了上述的所有接口，可以说他是集成所有能力的工厂，所以它可以参与到容器启动的过程中。</p>
+<h2 id="ApplicationContext-相关结构图"><a href="#ApplicationContext-相关结构图" class="headerlink" title="ApplicationContext 相关结构图"></a>ApplicationContext 相关结构图</h2><div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    classDiagram
+  direction TB
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; beans.factory（Context 依赖的核心接口）&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class BeanFactory {
+    &lt;&lt;interface&gt;&gt;
+    +Object getBean(String name)
+    +Object getBean(String name, Object... args)
+    +T getBean(String name, Class~T~ requiredType)
+  }
+
+  class ListableBeanFactory {
+    &lt;&lt;interface&gt;&gt;
+    +Map~String,T~ getBeansOfTYpe(Class~T~ requiredType)
+    +String[] getBeanDefinitionNameStrings()
+  }
+
+  class ConfigurableListableBeanFactory {
+    &lt;&lt;interface&gt;&gt;
+    +BeanDefinition getBeanDefinition(String name)
+    +void preInstantiateSingletons()
+  }
+
+  BeanFactory &lt;|-- ListableBeanFactory
+  ListableBeanFactory &lt;|-- ConfigurableListableBeanFactory
+
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; context（你要介绍的模块）&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class ApplicationContext {
+    &lt;&lt;interface&gt;&gt;
+  }
+
+  class ConfigurableApplicationContext {
+    &lt;&lt;interface&gt;&gt;
+    +void refresh()
+  }
+
+  ListableBeanFactory &lt;|-- ApplicationContext
+  ApplicationContext &lt;|-- ConfigurableApplicationContext
+
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; core.io（Context 通过继承拿到资源加载能力）&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class ResourceLoader {
+    &lt;&lt;interface&gt;&gt;
+    +Resource getResource(String location)
+  }
+
+  class DefaultResourceLoader {
+    +Resource getResource(String location)
+  }
+
+  ResourceLoader &lt;|.. DefaultResourceLoader
+
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; context.support（Context 的实现层次）&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class AbstractApplicationContext {
+    &lt;&lt;abstract&gt;&gt;
+    +void refresh()
+    #void refreshBeanFactory()*
+    #ConfigurableListableBeanFactory getBeanFactory()*
+  }
+
+  class AbstractRefreshableApplicationContext {
+    &lt;&lt;abstract&gt;&gt;
+    -DefaultListableBeanFactory beanFactory
+    #void refreshBeanFactory()
+    #ConfigurableListableBeanFactory getBeanFactory()
+    #void loadBeanDefinitions(DefaultListableBeanFactory)*
+  }
+
+  class AbstractXmlApplicationContext {
+    &lt;&lt;abstract&gt;&gt;
+    #void loadBeanDefinitions(DefaultListableBeanFactory)
+    #String[] getConfigurations()*
+  }
+
+  class ClassPathXmlApplicationContext {
+    -String[] configurations
+    +ClassPathXmlApplicationContext(String configurations)
+    +ClassPathXmlApplicationContext(String[] configurations)
+    #String[] getConfigurations()
+  }
+
+  DefaultResourceLoader &lt;|-- AbstractApplicationContext
+  ConfigurableApplicationContext &lt;|.. AbstractApplicationContext
+  AbstractApplicationContext &lt;|-- AbstractRefreshableApplicationContext
+  AbstractRefreshableApplicationContext &lt;|-- AbstractXmlApplicationContext
+  AbstractXmlApplicationContext &lt;|-- ClassPathXmlApplicationContext
+
+
+  %% &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; beans.factory.support &#x2F; xml（Context refresh 过程中会用到）&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+  class DefaultListableBeanFactory
+  class BeanDefinition
+  class BeanFactoryPostProcessor
+  class BeanPostProcessor
+  class XmlBeanDefinitionReader
+
+  ConfigurableListableBeanFactory &lt;|.. DefaultListableBeanFactory
+
+  AbstractApplicationContext ..&gt; ConfigurableListableBeanFactory : uses
+  AbstractApplicationContext ..&gt; BeanFactoryPostProcessor : invoke
+  AbstractApplicationContext ..&gt; BeanPostProcessor : register
+  AbstractRefreshableApplicationContext ..&gt; DefaultListableBeanFactory : creates
+  AbstractXmlApplicationContext ..&gt; XmlBeanDefinitionReader : uses
+  </pre></div>
+
+<h3 id="Context相关实现"><a href="#Context相关实现" class="headerlink" title="Context相关实现"></a>Context相关实现</h3><h4 id="ApplicationContext"><a href="#ApplicationContext" class="headerlink" title="ApplicationContext"></a>ApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">ApplicationContext</span> <span class="keyword">extends</span> <span class="title class_">ListableBeanFactory</span>&#123;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是真正意义上的容器，这里唯一要注意的是它继承了 <strong>ListableBeanFactory</strong></p>
+<h4 id="ConfigurableApplicationContext"><a href="#ConfigurableApplicationContext" class="headerlink" title="ConfigurableApplicationContext"></a>ConfigurableApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">ConfigurableApplicationContext</span> <span class="keyword">extends</span> <span class="title class_">ApplicationContext</span>&#123;</span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">refresh</span><span class="params">()</span> <span class="keyword">throws</span> BeansException;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这个接口声明了容器的核心功能：refresh 的方法</p>
+<h4 id="AbstractApplicationContext"><a href="#AbstractApplicationContext" class="headerlink" title="AbstractApplicationContext"></a>AbstractApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">AbstractApplicationContext</span> <span class="keyword">extends</span> <span class="title class_">DefaultResourceLoader</span> <span class="keyword">implements</span> <span class="title class_">ConfigurableApplicationContext</span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">refresh</span><span class="params">()</span> <span class="keyword">throws</span> BeansException&#123;</span><br><span class="line">        <span class="comment">//这是容器启动的时候的入口</span></span><br><span class="line">        <span class="comment">/*步骤</span></span><br><span class="line"><span class="comment">        1.创建 Bean 工厂，并扫描给定的路径，加载 Bean 定义, 问题是这里会将 BeanDefinition 存到内存中，是吗？</span></span><br><span class="line"><span class="comment">        2.在 BeanDefinition 加载之后执行扩展的方法，即 BeanFactoryProcessor, 这可能会修改加载的 BeanDefinition。</span></span><br><span class="line"><span class="comment">        3.加载所有的 BeanPostProcessor 并存放在内存中，之后会在实例化 Bean 的时候使用，所以这必须要在实例化 Bean 之前调用</span></span><br><span class="line"><span class="comment">        4.提前实例化所有的 Bean（实际上扩展的 Processor 也是 Bean，但是他们要先一步实例化，因为要在业务 Bean 实例化之前发挥作用）</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">        refreshBeanFactory();</span><br><span class="line"></span><br><span class="line">        ConfigurableListableBeanFactory beanFactory=getBeanFactory();</span><br><span class="line"></span><br><span class="line">        invokeBeanFactoryPostProcessors(beanFactory);</span><br><span class="line"></span><br><span class="line">        registerBeanPostProcessors(beanFactory);</span><br><span class="line"></span><br><span class="line">        beanFactory.preInstantiateSingletons();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title function_">refreshBeanFactory</span><span class="params">()</span> <span class="keyword">throws</span> BeansException;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">abstract</span> ConfigurableListableBeanFactory <span class="title function_">getBeanFactory</span><span class="params">()</span>;</span><br><span class="line"></span><br><span class="line">     <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">invokeBeanFactoryPostProcessors</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException&#123;</span><br><span class="line">        Map&lt;String,BeanFactoryPostProcessor&gt; map=beanFactory.getBeansOfTYpe(BeanFactoryPostProcessor.class);</span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;String,BeanFactoryPostProcessor&gt; ele : map.entrySet()) &#123;</span><br><span class="line">            ele.getValue().postProcessBeanFactory(beanFactory);</span><br><span class="line">        &#125;</span><br><span class="line">     &#125;</span><br><span class="line">     <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">registerBeanPostProcessors</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException&#123;</span><br><span class="line">        <span class="comment">//提前将该 processor 类的 Bean 加载进内存中, 并放入 factory 的 BeanPostProcessor 列表中</span></span><br><span class="line">        Map&lt;String,BeanPostProcessor&gt; map=beanFactory.getBeansOfTYpe(BeanPostProcessor.class);</span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;String,BeanPostProcessor&gt; ele : map.entrySet()) &#123;</span><br><span class="line">            beanFactory.addBeanPostProcessor(ele.getValue());</span><br><span class="line">        &#125;</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line">     <span class="meta">@Override</span></span><br><span class="line">     <span class="keyword">public</span> Object <span class="title function_">getBean</span><span class="params">(String name)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">         <span class="keyword">return</span> getBeanFactory().getBean(name);</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">     <span class="meta">@Override</span></span><br><span class="line">     <span class="keyword">public</span> &lt;T&gt; T <span class="title function_">getBean</span><span class="params">(String name, Class&lt;T&gt; requiredType)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        <span class="keyword">return</span> getBeanFactory().getBean(name, requiredType);</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line">     <span class="meta">@Override</span></span><br><span class="line">     <span class="keyword">public</span> Object <span class="title function_">getBean</span><span class="params">(String name, Object... args)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">         <span class="keyword">return</span> getBeanFactory().getBean(name, args);</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line">     <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> String[] getBeanDefinitionNameStrings() <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        <span class="keyword">return</span> getBeanFactory().getBeanDefinitionNameStrings();</span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> &lt;T&gt; Map&lt;String, T&gt; <span class="title function_">getBeansOfTYpe</span><span class="params">(Class&lt;T&gt; requiredType)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">        Map&lt;String,T&gt; map=getBeansOfTYpe(requiredType);</span><br><span class="line">        <span class="keyword">return</span> map;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个 context 则是负责定义了 refresh 即启动容器的完整逻辑：</p>
+<ol>
+<li>加载 Bean 工厂，并读取配置文件注册所有的 Bean 定义到内存。</li>
+<li>执行加载 BeanDefinition 后的处理操作，即去实例化 BeanFactoryPostProcessor 然后执行它的处理逻辑</li>
+<li>预先实例化 BeanPostProcessor 并放入 factory 的存储的 BeanPostProcessor 列表中。</li>
+<li>预先实例化所有的 Bean。</li>
+</ol>
+<p><strong>问题</strong>：</p>
+<ul>
+<li>为什么要存 BeanPostProcessor？为什么不存 BeanFactoryPostProcessor？<ul>
+<li>BeanFactoryPostProcessor 在 <code>refreshBeanFactory()</code> 之后实例化并且就能立刻发挥作用，但是前者需要在 <code> beanFactory.preInstantiateSingletons()</code> 的过程中发挥作用，所以必然要成为 beanfatory 的一个变量，从命名语义上来说也应该这样。</li>
+</ul>
+</li>
+</ul>
+<p>在这里要把Processor也看作特殊的Bean。</p>
+<p>完成<code>refresh</code>的逻辑需要的依赖有：<strong>BeanDefinitionReader</strong>（读取文件并注册bean），<strong>BeanFactory</strong>(注册，预实例化)</p>
+<h4 id="AbstractRefreshableApplicationContext"><a href="#AbstractRefreshableApplicationContext" class="headerlink" title="AbstractRefreshableApplicationContext"></a>AbstractRefreshableApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">AbstractRefreshableApplicationContext</span> <span class="keyword">extends</span> <span class="title class_">AbstractApplicationContext</span>&#123;</span><br><span class="line">    <span class="comment">//private DefaultListableBeanFactory beanFactory=new DefaultListableBeanFactory();</span></span><br><span class="line">    <span class="comment">//上面的写法是错误的</span></span><br><span class="line">        <span class="keyword">private</span> DefaultListableBeanFactory beanFactory;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">protected</span> ConfigurableListableBeanFactory <span class="title function_">getBeanFactory</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> beanFactory;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">private</span> DefaultListableBeanFactory <span class="title function_">createBeanFactory</span><span class="params">()</span>&#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">DefaultListableBeanFactory</span>();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">refreshBeanFactory</span><span class="params">()</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">            DefaultListableBeanFactory beanFactory=createBeanFactory();</span><br><span class="line">            loadBeanDefinitions(beanFactory);</span><br><span class="line">            <span class="built_in">this</span>.beanFactory=beanFactory;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">protected</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title function_">loadBeanDefinitions</span><span class="params">(DefaultListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>负责BeanFactory的创建与管理。注意：不能提前创建工厂，不然违背refresh的逻辑，即工厂的创建时期是由refresh决定的。</p>
+<p>创建工厂之后便是解析文件并且加载定义了，这一逻辑交由子类完成。</p>
+<h4 id="AbstractXmlApplicationContext"><a href="#AbstractXmlApplicationContext" class="headerlink" title="AbstractXmlApplicationContext"></a>AbstractXmlApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title class_">AbstractXmlApplicationContext</span> <span class="keyword">extends</span> <span class="title class_">AbstractRefreshableApplicationContext</span>&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">loadBeanDefinitions</span><span class="params">(DefaultListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException&#123;</span><br><span class="line">            <span class="comment">//首先需要有路径，然后需要有resourceReader</span></span><br><span class="line">            BeanDefinitionReader bdReader=<span class="keyword">new</span> <span class="title class_">XmlBeanDefinitionReader</span>(beanFactory);</span><br><span class="line">            String[] locations=getConfigurations();</span><br><span class="line">            bdReader.LoadBeanDefinition(locations);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">protected</span> <span class="keyword">abstract</span> String[] getConfigurations();</span><br><span class="line">&#125;   </span><br></pre></td></tr></table></figure>
+
+<p>这个主要是负责实现针对xml文件类型的解析逻辑。具体的路径存储与获取则是交给子类实现。</p>
+<h4 id="ClassPathXmlApplicationContext"><a href="#ClassPathXmlApplicationContext" class="headerlink" title="ClassPathXmlApplicationContext"></a>ClassPathXmlApplicationContext</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClassPathXmlApplicationContext</span> <span class="keyword">extends</span> <span class="title class_">AbstractXmlApplicationContext</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String[] configurations;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> String[] getConfigurations() &#123;</span><br><span class="line">        <span class="keyword">return</span> configurations;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//只有一条资源路径</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ClassPathXmlApplicationContext</span><span class="params">(String configurations)</span> <span class="keyword">throws</span> BeansException&#123;</span><br><span class="line">        <span class="built_in">this</span>(<span class="keyword">new</span> <span class="title class_">String</span>[]&#123;configurations&#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//注入资源路径依赖的之后就开始加载文件中的BeanDefinition</span></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ClassPathXmlApplicationContext</span><span class="params">(String[] configurations)</span> <span class="keyword">throws</span> BeansException&#123;</span><br><span class="line">        <span class="built_in">this</span>.configurations=configurations;</span><br><span class="line">        refresh();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个主要是负责存储classpath类型路径。</p>
+<h3 id="感悟"><a href="#感悟" class="headerlink" title="感悟"></a>感悟</h3><p>这个类&#x2F;接口的设计我感触很多啊。AbstractApplicationContext实现refresh需要factory和reader，但是它不管，只实现业务逻辑把涉及的依赖交给子类实现，AbstractRefreshableApplicationContext只负责创建factory，加载文件交给子类，AbstractXmlApplicationContext只负责用Reader解析文件，保存路径交给子类。</p>
+<p>这就是<strong>模板模式和分层设计</strong>的最好的证明啊！太优雅了！让上层只关注业务逻辑的定义，将一些与底层无关的实现细节交给子类实现。这样不仅能够极大地减少耦合度还能提高扩展性。太牛逼了。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://Zane-Woo.github.io">Zane Woo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://zane-woo.github.io/2025/12/29/%E6%89%8B%E5%86%99spring-day6/">https://zane-woo.github.io/2025/12/29/%E6%89%8B%E5%86%99spring-day6/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/coding/">coding</a></div><div class="post-share"><div class="social-share" data-image="/img/img0.webp" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/12/29/Java%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6/" title="Java集合框架"><img class="cover" src="/img/img1.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post" loading='lazy'><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">Java集合框架</div></div><div class="info-2"><div class="info-item-1">Java的集合部分的知识点</div></div></div></a><a class="pagination-related" href="/2025/12/27/%E6%89%8B%E5%86%99spring-day5/" title="手写spring-day5"><img class="cover" src="/img/img4.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post" loading='lazy'><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">手写spring-day5</div></div><div class="info-2"><div class="info-item-1">实现根据配置的路径读取对应的xml文件，并将xml文件里面的bean自动注册到容器中</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/12/22/%E6%89%8B%E5%86%99spring-day1/" title="手写spring-day1"><img class="cover" src="/img/img0.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-22</div><div class="info-item-2">手写spring-day1</div></div><div class="info-2"><div class="info-item-1">跟bugstack写的一个迷你spring，目的是深入学习spring并且拯救我的实操。</div></div></div></a><a class="pagination-related" href="/2025/12/23/%E6%89%8B%E5%86%99spring-day2/" title="手写spring-day2"><img class="cover" src="/img/img1.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-23</div><div class="info-item-2">手写spring-day2</div></div><div class="info-2"><div class="info-item-1">跟bugstack写的一个迷你spring，目的是深入学习spring并且拯救我的实操</div></div></div></a><a class="pagination-related" href="/2025/12/24/%E6%89%8B%E5%86%99spring-day3/" title="手写spring-day3"><img class="cover" src="/img/img3.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-24</div><div class="info-item-2">手写spring-day3</div></div><div class="info-2"><div class="info-item-1">跟bugstack写的一个迷你spring，目的是深入学习spring并且拯救我的实操。</div></div></div></a><a class="pagination-related" href="/2025/12/25/%E6%89%8B%E5%86%99spring-day4/" title="手写spring-day4"><img class="cover" src="/img/img2.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-25</div><div class="info-item-2">手写spring-day4</div></div><div class="info-2"><div class="info-item-1">跟bugstack写的一个迷你spring，目的是深入学习spring并且拯救我的实操。</div></div></div></a><a class="pagination-related" href="/2025/12/27/%E6%89%8B%E5%86%99spring-day5/" title="手写spring-day5"><img class="cover" src="/img/img4.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-27</div><div class="info-item-2">手写spring-day5</div></div><div class="info-2"><div class="info-item-1">实现根据配置的路径读取对应的xml文件，并将xml文件里面的bean自动注册到容器中</div></div></div></a><a class="pagination-related" href="/2026/01/01/%E6%89%8B%E5%86%99spring-day7/" title="手写spring-day7"><img class="cover" src="/img/img0.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-01</div><div class="info-item-2">手写spring-day7</div></div><div class="info-2"><div class="info-item-1">添加可由用户自定义的初始化或销毁的扩展方法</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Zane Woo</div><div class="author-info-description">在路上</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">13</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Zane-Woo"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Zane-Woo" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:wuz33631@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="https://space.bilibili.com/3546378057812838" target="_blank" title="Bilibili"><i class="fab fa-bilibili" style="color: #00A1D6;"></i></a><a class="social-icon" href="https://steamcommunity.com/id/76561199534301889" target="_blank" title="Steam"><i class="fab fa-steam" style="color: #000000;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Hi!🙂 I`m Zane. <br>🎉 感谢访问我的个人博客<br>💡 欢迎留言交流</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%83%8C%E6%99%AF"><span class="toc-number">2.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%B1%BB%E5%92%8C%E6%8E%A5%E5%8F%A3%E7%9A%84%E8%AE%BE%E8%AE%A1"><span class="toc-number">3.</span> <span class="toc-text">类和接口的设计</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#BeanFactory-%E7%BB%93%E6%9E%84%E6%A1%86%E6%9E%B6%E5%9B%BE"><span class="toc-number">3.1.</span> <span class="toc-text">BeanFactory 结构框架图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#BeanFactory-%E7%9B%B8%E5%85%B3%E5%AE%9E%E7%8E%B0"><span class="toc-number">3.1.1.</span> <span class="toc-text">BeanFactory 相关实现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#ListableBeanFactory"><span class="toc-number">3.1.1.1.</span> <span class="toc-text">ListableBeanFactory</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#AutowireCapableBeanFactory"><span class="toc-number">3.1.1.2.</span> <span class="toc-text">AutowireCapableBeanFactory</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#HierarchicalBeanFactory"><span class="toc-number">3.1.1.3.</span> <span class="toc-text">HierarchicalBeanFactory</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ConfigurableBeanFactory"><span class="toc-number">3.1.1.4.</span> <span class="toc-text">ConfigurableBeanFactory</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ConfigurableListableBeanFactory"><span class="toc-number">3.1.1.5.</span> <span class="toc-text">ConfigurableListableBeanFactory</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ApplicationContext-%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E5%9B%BE"><span class="toc-number">3.2.</span> <span class="toc-text">ApplicationContext 相关结构图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Context%E7%9B%B8%E5%85%B3%E5%AE%9E%E7%8E%B0"><span class="toc-number">3.2.1.</span> <span class="toc-text">Context相关实现</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#ApplicationContext"><span class="toc-number">3.2.1.1.</span> <span class="toc-text">ApplicationContext</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ConfigurableApplicationContext"><span class="toc-number">3.2.1.2.</span> <span class="toc-text">ConfigurableApplicationContext</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#AbstractApplicationContext"><span class="toc-number">3.2.1.3.</span> <span class="toc-text">AbstractApplicationContext</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#AbstractRefreshableApplicationContext"><span class="toc-number">3.2.1.4.</span> <span class="toc-text">AbstractRefreshableApplicationContext</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#AbstractXmlApplicationContext"><span class="toc-number">3.2.1.5.</span> <span class="toc-text">AbstractXmlApplicationContext</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ClassPathXmlApplicationContext"><span class="toc-number">3.2.1.6.</span> <span class="toc-text">ClassPathXmlApplicationContext</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%84%9F%E6%82%9F"><span class="toc-number">3.2.2.</span> <span class="toc-text">感悟</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/02/%E6%89%8B%E5%86%99spring-day8/" title="手写spring-day8"><img src="/img/img1.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day8"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/02/%E6%89%8B%E5%86%99spring-day8/" title="手写spring-day8">手写spring-day8</a><time datetime="2026-01-02T02:39:30.000Z" title="Created 2026-01-02 10:39:30">2026-01-02</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/01/%E6%89%8B%E5%86%99spring-day7/" title="手写spring-day7"><img src="/img/img0.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day7"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/01/%E6%89%8B%E5%86%99spring-day7/" title="手写spring-day7">手写spring-day7</a><time datetime="2026-01-01T05:12:17.000Z" title="Created 2026-01-01 13:12:17">2026-01-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/30/hashCode-%E7%9A%84%E7%BB%86%E8%8A%82%E6%8E%A8%E6%95%B2/" title="hashCode()的细节推敲"><img src="/img/img4.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="hashCode()的细节推敲"/ loading='lazy'></a><div class="content"><a class="title" href="/2025/12/30/hashCode-%E7%9A%84%E7%BB%86%E8%8A%82%E6%8E%A8%E6%95%B2/" title="hashCode()的细节推敲">hashCode()的细节推敲</a><time datetime="2025-12-30T14:41:25.000Z" title="Created 2025-12-30 22:41:25">2025-12-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/30/Java%E9%9B%86%E5%90%88%E7%9A%84%E5%AD%90%E7%B1%BB/" title="Java集合的子类"><img src="/img/img2.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Java集合的子类"/ loading='lazy'></a><div class="content"><a class="title" href="/2025/12/30/Java%E9%9B%86%E5%90%88%E7%9A%84%E5%AD%90%E7%B1%BB/" title="Java集合的子类">Java集合的子类</a><time datetime="2025-12-30T14:27:42.000Z" title="Created 2025-12-30 22:27:42">2025-12-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/29/Java%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6/" title="Java集合框架"><img src="/img/img1.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Java集合框架"/ loading='lazy'></a><div class="content"><a class="title" href="/2025/12/29/Java%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6/" title="Java集合框架">Java集合框架</a><time datetime="2025-12-29T12:16:38.000Z" title="Created 2025-12-29 20:16:38">2025-12-29</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/img4.webp);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Zane Woo</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'Zane-Woo/Zane-Woo.github.io',
+      'data-repo-id': 'R_kgDOQkAk7Q',
+      'data-category-id': 'DIC_kwDOQkAk7c4Czfzm',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !true) {
+    if (true) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><script src="/js/mermaid-zoom.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="99" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/canvas-nest.min.js"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-heart.min.js" async="async" mobile="false"></script><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-show-text.min.js" data-mobile="false" data-text="luck++,芝士++,喵,喵喵,喵喵喵" data-fontsize="15px" data-random="true" async="async"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["meta[property=\"og:image\"]","meta[property=\"og:title\"]","meta[property=\"og:url\"]","meta[property=\"og:description\"]","link[rel=\"canonical\"]","head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      false
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script>(() => {
+  const option = null
+  const config = {"site_uv":true,"site_pv":true,"page_pv":true,"token":"api_ouaZQLvYMLpqt6M5rtMs1VUlqKlcHLnX"}
+
+  const runTrack = () => {
+    if (typeof umami !== 'undefined' && typeof umami.track === 'function') {
+      umami.track(props => ({ ...props, url: window.location.pathname, title: GLOBAL_CONFIG_SITE.title }))
+    } else {
+      console.warn('Umami Analytics: umami.track is not available')
+    }
+  }
+
+  const loadUmamiJS = () => {
+    btf.getScript('https://cloud.umami.is/script.js', {
+      'data-website-id': 'c159e504-5916-4bc3-aa25-dc8c339849d2',
+      'data-auto-track': 'false',
+      ...option
+    }).then(() => {
+      runTrack()
+    }).catch(error => {
+      console.error('Umami Analytics: Error loading script', error)
+    })
+  }
+
+  const getData = async () => {
+    try {
+      const now = Date.now()
+      const headerList = { 'Accept': 'application/json' }
+
+      // Umami Cloud gives an API Key that starts with "api_"
+      // - API Key: use x-umami-api-key
+      // - JWT token: use Authorization: Bearer <token>
+      if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+        headerList['x-umami-api-key'] = config.token
+      } else if (config && config.token) {
+        headerList['Authorization'] = `Bearer ${config.token}`
+      }
+
+      // Note: Umami Cloud v1 /stats endpoint does NOT filter by url reliably.
+      // We use it only for site-level totals (UV/PV). Per-post PV uses metrics(type=url).
+      const res = await fetch(`https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/stats?startAt=0000000000&endAt=${now}`, {
+        method: "GET",
+        headers: headerList
+      })
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Umami Analytics: Failed to fetch data', error)
+      throw error
+    }
+  }
+
+  // Get per-page PV by aggregating Umami "pageview" events.
+  // Reason: Umami Cloud v1 metrics(type=url) returns 1 per page for this site (likely sessions/unique),
+  // and /stats does not support url filtering. /events is reliable and returns pageview events with urlPath.
+  const getPageviewMap = async (force = false) => {
+    const now = Date.now()
+    const headerList = { 'Accept': 'application/json' }
+
+    if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+      headerList['x-umami-api-key'] = config.token
+    } else if (config && config.token) {
+      headerList['Authorization'] = `Bearer ${config.token}`
+    }
+
+    const cacheKey = 'umami_pv_map_v1'
+    const cached = btf?.saveToLocal?.get?.(cacheKey)
+    // Keep cache window short so PV feels "near real-time" when navigating with PJAX.
+    // (Umami Cloud may take ~0.5-2s to persist events; we also do a delayed forced refresh after tracking.)
+    if (!force && cached && cached.data && (Date.now() - cached.ts) < 10 * 1000) {
+      return cached.data
+    }
+
+    const map = new Map()
+    const pageSize = 500
+    let page = 1
+    let total = Infinity
+
+    while ((page - 1) * pageSize < total) {
+      const url = `https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/events?startAt=0000000000&endAt=${now}&page=${page}&pageSize=${pageSize}`
+      const res = await fetch(url, { method: 'GET', headers: headerList })
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+      const json = await res.json()
+
+      const data = Array.isArray(json?.data) ? json.data : []
+      total = typeof json?.count === 'number' ? json.count : data.length
+
+      for (const ev of data) {
+        // eventType===1 is pageview for Umami v1
+        const path = normalizePath(ev?.urlPath || '')
+        if (!path) continue
+        map.set(path, (map.get(path) || 0) + 1)
+      }
+
+      if (data.length < pageSize) break
+      page += 1
+    }
+
+    const plain = Object.fromEntries(map)
+    btf?.saveToLocal?.set?.(cacheKey, { ts: Date.now(), data: plain }, 1)
+    return plain
+  }
+
+  const normalizePath = (p) => {
+    if (!p || typeof p !== 'string') return ''
+    // Keep only path part, ensure leading slash and trailing slash
+    const raw = p.split('?')[0].split('#')[0]
+    let path = raw
+    // Decode URL-encoded pathname so it matches Umami metrics output (which can be decoded)
+    try {
+      // decodeURIComponent is stricter; guard with try/catch
+      path = decodeURIComponent(path)
+    } catch (e) {
+      try { path = decodeURI(path) } catch (_) {}
+    }
+    if (!path.startsWith('/')) path = '/' + path.replace(/^\/*/, '')
+    return path.endsWith('/') ? path : path + '/'
+  }
+
+  const insertData = async () => {
+    try {
+      if (config.site_uv || config.site_pv) {
+        const data = await getData()
+
+        if (config.site_uv) {
+          const siteUV = document.getElementById('umami-site-uv')
+          const uv = data && data.visitors != null
+            ? (typeof data.visitors === 'object' && data.visitors !== null && typeof data.visitors.value !== 'undefined'
+              ? data.visitors.value
+              : data.visitors)
+            : undefined
+          if (siteUV && typeof uv !== 'undefined') {
+            siteUV.textContent = uv
+          } else if (siteUV) {
+            console.warn('Umami Analytics: Invalid site UV data received')
+          }
+        }
+
+        if (config.site_pv) {
+          const sitePV = document.getElementById('umami-site-pv')
+          const pv = data && data.pageviews != null
+            ? (typeof data.pageviews === 'object' && data.pageviews !== null && typeof data.pageviews.value !== 'undefined'
+              ? data.pageviews.value
+              : data.pageviews)
+            : undefined
+          if (sitePV && typeof pv !== 'undefined') {
+            sitePV.textContent = pv
+          } else if (sitePV) {
+            console.warn('Umami Analytics: Invalid site PV data received')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert data', error)
+    }
+  }
+
+  const insertListPV = async () => {
+    try {
+      if (!config.page_pv) return
+      const pvObj = await getPageviewMap(false)
+      const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+      const nodes = document.querySelectorAll('.umami-post-pv[data-umami-url]')
+      if (nodes && nodes.length > 0) {
+        nodes.forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          const pv = map.has(key) ? map.get(key) : 0
+          node.textContent = pv
+        })
+      }
+
+      // Also update per-post PV on post pages (use the same url metrics map)
+      if (GLOBAL_CONFIG_SITE.pageType === 'post' && config.page_pv) {
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          const pv = map.has(currentKey) ? map.get(currentKey) : 0
+          pagePV.textContent = pv
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert list pv', error)
+    }
+  }
+
+  // After tracking, do a delayed forced refresh so the UI reflects the newest PV.
+  const refreshPVAfterTrack = () => {
+    if (!config.page_pv) return
+    // Give Umami a moment to persist the event, then bypass cache once.
+    setTimeout(async () => {
+      try {
+        const pvObj = await getPageviewMap(true)
+        const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+        // update list nodes if present
+        document.querySelectorAll('.umami-post-pv[data-umami-url]').forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          node.textContent = map.has(key) ? map.get(key) : 0
+        })
+
+        // update current post PV if present
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          pagePV.textContent = map.has(currentKey) ? map.get(currentKey) : 0
+        }
+      } catch (e) {
+        console.error('Umami Analytics: Failed to refresh pv after track', e)
+      }
+    }, 1200)
+  }
+
+  btf.addGlobalFn('pjaxComplete', runTrack, 'umami_analytics_run_track')
+  btf.addGlobalFn('pjaxComplete', insertData, 'umami_analytics_insert')
+  btf.addGlobalFn('pjaxComplete', insertListPV, 'umami_analytics_insert_list_pv')
+  btf.addGlobalFn('pjaxComplete', refreshPVAfterTrack, 'umami_analytics_refresh_pv_after_track')
+
+
+  loadUmamiJS()
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', insertData)
+    document.addEventListener('DOMContentLoaded', insertListPV)
+    document.addEventListener('DOMContentLoaded', refreshPVAfterTrack)
+  } else {
+    setTimeout(insertData, 100)
+    setTimeout(insertListPV, 150)
+    setTimeout(refreshPVAfterTrack, 200)
+  }
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading Database</span></div><div class="local-search-input"><input placeholder="搜索文章..." type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"https://raw.githubusercontent.com/iCharlesZ/vscode-live2d-models/master/model-library/bilibili-22/index.json"},"display":{"position":"left","width":230,"height":460,"hOffset":0,"vOffset":-40},"mobile":{"show":false,"scale":0.5},"react":{"opacityDefault":0.8,"opacityOnHover":0.2}});</script></body></html>
