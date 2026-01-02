@@ -1,0 +1,50 @@
+/* GitHub Snake Animation Widget */
+
+.card-github-snake {
+  overflow: hidden;
+}
+
+#github-snake-box {
+  width: 100%;
+  position: relative;
+  min-height: 150px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#github-snake-box img {
+  width: 100%;
+  height: auto;
+  display: block;
+  background-color: transparent;
+}
+
+/* Light mode: show light snake, hide dark snake */
+.github-snake-light {
+  display: block;
+}
+
+.github-snake-dark {
+  display: none;
+}
+
+/* Dark mode: hide light snake, show dark snake */
+[data-theme="dark"] .github-snake-light {
+  display: none;
+}
+
+[data-theme="dark"] .github-snake-dark {
+  display: block;
+}
+
+/* Ensure transparent background in dark mode */
+[data-theme="dark"] #github-snake-box {
+  background-color: transparent;
+}
+
+[data-theme="dark"] #github-snake-box img {
+  background-color: transparent;
+  opacity: 0.95;
+}
+
