@@ -7,11 +7,9 @@
   'use strict';
 
   const CONFIG = {
-    SNAKE_LENGTH: 20,        // 蛇的长度
-    MOVE_INTERVAL: 100,      // 移动间隔（毫秒），越小越快
+    SNAKE_LENGTH: 8,         // 蛇的长度（缩短）
+    MOVE_INTERVAL: 150,      // 移动间隔（毫秒）
     INIT_DELAY: 500,         // 初始化延迟
-    COLOR_HEAD: '#ff6b2b',   // 蛇头颜色（橙红色）
-    COLOR_BODY: '#4A9EFF',   // 蛇身颜色（蓝色）
   };
 
   let snakeTimer = null;
