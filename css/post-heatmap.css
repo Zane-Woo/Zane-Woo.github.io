@@ -1,0 +1,85 @@
+/* GitHub-like post heatmap (Butterfly sidebar custom widget) */
+
+.post-heatmap {
+  --cell: 11px;
+  --gap: 3px;
+  --lv0: #ebedf0;
+  --lv1: #9be9a8;
+  --lv2: #40c463;
+  --lv3: #30a14e;
+  --lv4: #216e39;
+}
+
+[data-theme="dark"] .post-heatmap {
+  --lv0: #2d333b;
+  --lv1: #0e4429;
+  --lv2: #006d32;
+  --lv3: #26a641;
+  --lv4: #39d353;
+}
+
+.post-heatmap__grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--cell);
+  grid-template-rows: repeat(7, var(--cell));
+  gap: var(--gap);
+  align-items: start;
+  justify-content: start;
+  padding: 6px 2px 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.post-heatmap__day {
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 2px;
+  background: var(--lv0);
+  outline: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .post-heatmap__day {
+  outline: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.post-heatmap__day.lv-1 { background: var(--lv1); }
+.post-heatmap__day.lv-2 { background: var(--lv2); }
+.post-heatmap__day.lv-3 { background: var(--lv3); }
+.post-heatmap__day.lv-4 { background: var(--lv4); }
+
+.post-heatmap__day.is-outside {
+  background: transparent;
+  outline: none;
+}
+
+.post-heatmap__legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.85;
+  margin-top: 8px;
+}
+
+.post-heatmap__legend-scale {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.post-heatmap__legend-scale i {
+  display: inline-block;
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 2px;
+  background: var(--lv0);
+}
+
+.post-heatmap__legend-scale i.lv-1 { background: var(--lv1); }
+.post-heatmap__legend-scale i.lv-2 { background: var(--lv2); }
+.post-heatmap__legend-scale i.lv-3 { background: var(--lv3); }
+.post-heatmap__legend-scale i.lv-4 { background: var(--lv4); }
+
+
