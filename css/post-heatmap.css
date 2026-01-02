@@ -53,6 +53,29 @@
   outline: none;
 }
 
+/* Snake animation overlay (keeps original lv-* color, just adds glow/outline) */
+.post-heatmap__day.snake-seg {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55), 0 0 12px rgba(73, 177, 245, 0.55);
+  transform: translateZ(0);
+}
+
+[data-theme="dark"] .post-heatmap__day.snake-seg {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.45), 0 0 12px rgba(57, 211, 83, 0.55);
+}
+
+.post-heatmap__day.snake-head {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 16px rgba(255, 114, 66, 0.8);
+}
+
+[data-theme="dark"] .post-heatmap__day.snake-head {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6), 0 0 16px rgba(255, 114, 66, 0.85);
+}
+
+.post-heatmap.is-snake-paused .post-heatmap__day.snake-seg,
+.post-heatmap.is-snake-paused .post-heatmap__day.snake-head {
+  box-shadow: none;
+}
+
 .post-heatmap__legend {
   display: flex;
   align-items: center;
