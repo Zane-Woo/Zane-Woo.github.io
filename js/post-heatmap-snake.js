@@ -1,14 +1,13 @@
-/* 文章热力图贪吃蛇动画 - 优化版
- * 参考: https://inkcodes.com/2024/12/04/给hexo博客添加贪吃蛇热力图/
- * 实现: 在博客文章热力图上叠加贪吃蛇动画
+/* 文章热力图贪吃蛇动画 - 穿越版
+ * 实现: 蛇从上往下走，到底部后从下一列顶部出现（上下联通）
  */
 
 (() => {
   'use strict';
 
   const CONFIG = {
-    SNAKE_LENGTH: 8,         // 蛇的长度（缩短）
-    MOVE_INTERVAL: 150,      // 移动间隔（毫秒）
+    SNAKE_LENGTH: 7,         // 蛇的长度（刚好一列）
+    MOVE_INTERVAL: 120,      // 移动间隔（毫秒）
     INIT_DELAY: 500,         // 初始化延迟
   };
 
@@ -18,26 +17,27 @@
   class HeatmapSnake {
     constructor(container) {
       this.container = container;
-      this.cells = [];
-      this.path = [];
-      this.position = 0;
+      this.grid = [];     // 二维网格 [col][row]
+      this.cols = 0;
+      this.rows = 7;      // 一周7天
+      this.position = { col: 0, row: 0 };
       this.paused = false;
       this.init();
     }
 
     init() {
       // 获取所有有效的热力图格子（排除占位格子）
-      this.cells = Array.from(
-        this.container.querySelectorAll('.post-heatmap__day:not(.is-outside)')
+      const allCells = Array.from(
+        this.container.querySelectorAll('.post-heatmap__day')
       );
 
-      if (this.cells.length < CONFIG.SNAKE_LENGTH) {
+      if (allCells.length < CONFIG.SNAKE_LENGTH) {
         console.warn('热力图格子数量不足，无法显示贪吃蛇');
         return;
       }
 
-      // 构建蛇形路径（之字形）
-      this.buildSnakePath();
+      // 构建二维网格（按列优先，因为 CSS grid 是 column-flow）
+      this.buildGrid(allCells);
 
       // 绑定鼠标悬停事件
       this.bindEvents();
@@ -46,27 +46,56 @@
       this.start();
     }
 
-    buildSnakePath() {
-      // 热力图是按周（列）排列的，每周7天（行）
-      const DAYS_PER_WEEK = 7;
-      const weeks = Math.ceil(this.cells.length / DAYS_PER_WEEK);
+    buildGrid(allCells) {
+      // 热力图是列优先排列的
+      // 每列7个格子（一周7天）
+      this.cols = Math.ceil(allCells.length / this.rows);
+      this.grid = [];
 
-      this.path = [];
-
-      // 按列遍历，奇数列从上到下，偶数列从下到上（之字形）
-      for (let week = 0; week < weeks; week++) {
-        const startIdx = week * DAYS_PER_WEEK;
-        const endIdx = Math.min(startIdx + DAYS_PER_WEEK, this.cells.length);
-
-        if (week % 2 === 0) {
-          // 偶数列：从上到下
-          for (let i = startIdx; i < endIdx; i++) {
-            this.path.push(this.cells[i]);
+      for (let col = 0; col < this.cols; col++) {
+        this.grid[col] = [];
+        for (let row = 0; row < this.rows; row++) {
+          const idx = col * this.rows + row;
+          if (idx < allCells.length) {
+            const cell = allCells[idx];
+            // 标记是否是有效格子
+            const isValid = !cell.classList.contains('is-outside');
+            this.grid[col][row] = { el: cell, valid: isValid };
           }
-        } else {
-          // 奇数列：从下到上
-          for (let i = endIdx - 1; i >= startIdx; i--) {
-            this.path.push(this.cells[i]);
+        }
+      }
+    }
+
+    // 获取蛇身的所有位置（向上回溯）
+    getSnakePositions() {
+      const positions = [];
+      let { col, row } = this.position;
+
+      for (let i = 0; i < CONFIG.SNAKE_LENGTH; i++) {
+        positions.push({ col, row });
+        
+        // 向上移动一格（反向追溯蛇身）
+        row--;
+        if (row < 0) {
+          row = this.rows - 1;
+          col--;
+          if (col < 0) {
+            col = this.cols - 1;
+          }
+        }
+      }
+
+      return positions;
+    }
+
+    clearAllStyles() {
+      // 清除所有格子的蛇样式
+      for (let col = 0; col < this.cols; col++) {
+        for (let row = 0; row < this.rows; row++) {
+          if (this.grid[col] && this.grid[col][row]) {
+            const cell = this.grid[col][row].el;
+            cell.classList.remove('snake-head', 'snake-body');
+            cell.style.removeProperty('--snake-opacity');
           }
         }
       }
@@ -76,15 +105,17 @@
       if (this.paused) return;
 
       // 清除所有蛇的样式
-      this.path.forEach(cell => {
-        cell.classList.remove('snake-head', 'snake-body');
-        cell.style.removeProperty('--snake-opacity');
-      });
+      this.clearAllStyles();
+
+      // 获取蛇的所有位置
+      const positions = this.getSnakePositions();
 
       // 绘制蛇身（渐变透明度）
-      for (let i = 0; i < CONFIG.SNAKE_LENGTH; i++) {
-        const idx = (this.position - i + this.path.length) % this.path.length;
-        const cell = this.path[idx];
+      positions.forEach((pos, i) => {
+        const cellData = this.grid[pos.col]?.[pos.row];
+        if (!cellData || !cellData.valid) return;
+
+        const cell = cellData.el;
 
         if (i === 0) {
           // 蛇头
@@ -95,28 +126,40 @@
           cell.classList.add('snake-body');
           cell.style.setProperty('--snake-opacity', opacity.toFixed(2));
         }
-      }
+      });
     }
 
     move() {
-      this.position = (this.position + 1) % this.path.length;
+      // 向下移动一格
+      this.position.row++;
+      
+      // 到达底部，穿越到下一列的顶部
+      if (this.position.row >= this.rows) {
+        this.position.row = 0;
+        this.position.col++;
+        
+        // 到达最右边，回到最左边
+        if (this.position.col >= this.cols) {
+          this.position.col = 0;
+        }
+      }
+
       this.draw();
     }
 
     start() {
       if (snakeTimer) return;
 
+      // 从中间位置开始
+      this.position = { col: Math.floor(this.cols / 2), row: 0 };
+      
       this.draw();
       snakeTimer = setInterval(() => this.move(), CONFIG.MOVE_INTERVAL);
     }
 
     pause() {
       this.paused = true;
-      // 清除所有蛇的样式
-      this.path.forEach(cell => {
-        cell.classList.remove('snake-head', 'snake-body');
-        cell.style.removeProperty('--snake-opacity');
-      });
+      this.clearAllStyles();
     }
 
     resume() {
@@ -129,11 +172,7 @@
         clearInterval(snakeTimer);
         snakeTimer = null;
       }
-      // 清除所有蛇的样式
-      this.path.forEach(cell => {
-        cell.classList.remove('snake-head', 'snake-body');
-        cell.style.removeProperty('--snake-opacity');
-      });
+      this.clearAllStyles();
     }
 
     bindEvents() {

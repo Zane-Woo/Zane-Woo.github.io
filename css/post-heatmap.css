@@ -97,13 +97,7 @@
 }
 
 .post-heatmap__legend {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  opacity: 0.85;
-  margin-top: 8px;
+  display: none; /* 隐藏图例 */
 }
 
 .post-heatmap__legend-scale {
