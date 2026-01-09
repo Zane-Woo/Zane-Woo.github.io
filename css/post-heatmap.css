@@ -25,10 +25,18 @@
   grid-template-rows: repeat(7, var(--cell));
   gap: var(--gap);
   align-items: start;
-  justify-content: start;
+  /* 关键：列数超过卡片宽度时，优先显示右侧（最新日期），避免只看到“很早的那一段” */
+  justify-content: end;
   padding: 6px 2px 2px;
-  overflow: hidden; /* 防止贪吃蛇溢出 */
-  scrollbar-width: thin;
+  /* 允许横向滚动查看更早日期；同时默认展示的是右侧最新区域 */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none; /* Firefox */
+}
+
+/* WebKit: 隐藏横向滚动条（仍可滚动） */
+.post-heatmap__grid::-webkit-scrollbar {
+  height: 0;
 }
 
 .post-heatmap__day {
