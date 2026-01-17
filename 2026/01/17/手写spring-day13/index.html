@@ -1,0 +1,716 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>手写spring-day13 | Zane</title><meta name="author" content="Zane Woo"><meta name="copyright" content="Zane Woo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="结合注解实现给定路径自动扫描注册Bean，并实现相关的注解的字段属性配置，实现为代理对象注入属性值">
+<meta property="og:type" content="article">
+<meta property="og:title" content="手写spring-day13">
+<meta property="og:url" content="https://zane-woo.github.io/2026/01/17/%E6%89%8B%E5%86%99spring-day13/index.html">
+<meta property="og:site_name" content="Zane">
+<meta property="og:description" content="结合注解实现给定路径自动扫描注册Bean，并实现相关的注解的字段属性配置，实现为代理对象注入属性值">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zane-woo.github.io/img/img0.webp">
+<meta property="article:published_time" content="2026-01-17T04:47:57.000Z">
+<meta property="article:modified_time" content="2026-01-17T13:45:47.424Z">
+<meta property="article:author" content="Zane Woo">
+<meta property="article:tag" content="coding">
+<meta property="article:tag" content="注解">
+<meta property="article:tag" content="反射">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zane-woo.github.io/img/img0.webp"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "手写spring-day13",
+  "url": "https://zane-woo.github.io/2026/01/17/%E6%89%8B%E5%86%99spring-day13/",
+  "image": "https://zane-woo.github.io/img/img0.webp",
+  "datePublished": "2026-01-17T04:47:57.000Z",
+  "dateModified": "2026-01-17T13:45:47.424Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Zane Woo",
+      "url": "https://Zane-Woo.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://zane-woo.github.io/2026/01/17/%E6%89%8B%E5%86%99spring-day13/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="manifest" href="/manifest.webmanifest"/><link rel="apple-touch-icon" sizes="180x180" href="/img/favicon.png"/><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png"/><link rel="icon" type="image/png" sizes="16x16" href="/img/favicon.png"/><link rel="mask-icon" href="/img/favicon.png" color="#5bbad5"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.json","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"No results found for: ${query}","hits_stats":"${hits} articles found"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '手写spring-day13',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="preload" as="image" href="/img/img0.webp"><link rel="preload" as="image" href="/img/avatar2.webp"><link rel="preload" as="image" href="/img/img3.webp"><link rel="preload" as="image" href="/img/img4.webp"><link rel="preload" as="image" href="/img/img5.webp"><link rel="preload" as="image" href="/img/img6.webp"><link rel="preload" as="image" href="/img/img7.webp"><link rel="dns-prefetch" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//cdn.jsdelivr.net" crossorigin><style>#site-info::before{content:"";display:block;width:150px;height:150px;margin:0 auto 30px;border-radius:50%;background:url(/img/avatar.webp) center/cover;border:3px solid rgba(255,255,255,0.8);box-shadow:0 5px 20px rgba(0,0,0,0.3);}</style><style>.card-widget,.recent-post-item{background:rgba(255,255,255,0.75)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;border:1px solid rgba(255,255,255,0.3)!important;box-shadow:0 8px 32px rgba(0,0,0,0.1)!important;}[data-theme="dark"] .card-widget,[data-theme="dark"] .recent-post-item{background:rgba(0,0,0,0.5)!important;border:1px solid rgba(255,255,255,0.1)!important;}</style><style>*,html,body{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/cursor.png'),auto!important;}a,button,input[type="submit"],input[type="button"],.btn,.pointer,[role="button"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/pointer.png'),pointer!important;}input:not([type="submit"]):not([type="button"]),textarea,[contenteditable="true"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/text.png'),text!important;}.disabled,[disabled]{cursor:not-allowed!important;}</style><style>html,body,#page-header,#content-inner,#aside-content,#footer,.card-widget,.recent-post-item,.layout>div,.post-content,.post,#rightside{transition:background-color .25s ease,color .25s ease,border-color .25s ease,box-shadow .25s ease!important;}@media (prefers-reduced-motion:reduce){html,body,#page-header,#content-inner,#aside-content,#footer,.card-widget,.recent-post-item,.layout>div,.post-content,.post,#rightside{transition:none!important;}}</style><link rel="stylesheet" href="/css/post-heatmap.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">Loading...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="web_bg" style="background-image: url(/img/img3.webp);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">23</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">29</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">15</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/img0.webp);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Zane</span></a><a class="nav-page-title" href="/"><span class="site-name">手写spring-day13</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">手写spring-day13</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-01-17T04:47:57.000Z" title="Created 2026-01-17 12:47:57">2026-01-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-01-17T13:45:47.424Z" title="Updated 2026-01-17 21:45:47">2026-01-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/">学习</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/">coding</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/">java</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/%E7%BC%96%E7%A0%81/">编码</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/%E7%BC%96%E7%A0%81/mini-spring/">mini-spring</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">Word Count:</span><span class="word-count">2.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">Reading Time:</span><span>10mins</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="umamiPV" data-path="/2026/01/17/%E6%89%8B%E5%86%99spring-day13/"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>这次一口气实现三个强关联的功能，所以合并到一个文章里面了。</p>
+<p>由于之前的实现是只能通过手动配置xml文件才能注册Bean，但是现有的spring框架一般都是直接给出类路径然后通过注解快速实现注册Bean的功能。但是仅仅完成注册Bean是不够的，还需要能支持注解为相应的字段配置值的功能。第三个需求则是对之前实现的改进。</p>
+<h1 id="各功能的类-接口实现"><a href="#各功能的类-接口实现" class="headerlink" title="各功能的类&#x2F;接口实现"></a>各功能的类&#x2F;接口实现</h1><h2 id="功能一结构图"><a href="#功能一结构图" class="headerlink" title="功能一结构图"></a>功能一结构图</h2><p><img src="https://bugstack.cn/assets/images/spring/spring-14-02.png" alt="功能一" loading='lazy'></p>
+<p>功能一的目标是完成自动加载给定包路径下的所有打上<code>@Component</code>标记。拆解后的功能步骤如下：</p>
+<ul>
+<li>加载给定路径的所有的class文件对应的Class对象到内存中、</li>
+<li>根据class的注解来判断是否为Bean对象(<code>@Component</code>)，以及设置某些元数据（<code>@Scope</code>）。</li>
+<li>打包成BeanDefinition注册到内存中</li>
+</ul>
+<p>这是以扫描的方式加载BeanDefinition，既然从文件路劲中加载BeanDefinition，而路径又配置在xml文件中，那么这一功能的入口必然是<code>XmlBeanDefinitionReader</code>。当然，它仅仅作为入口调用接口，而具体的扫描类文件并处理元数据相关的注解与注册BeanDefinition的工作是由<code>ClassPathScanningCandidateComponentProvider</code>完成。不过严格来说，是<code>ClassPathScanningCandidateComponentProvider</code>的父类<code>ClassPathScanningCandidateComponentProvider</code>实现了加载给定的路径下的所有被@Componnet注解标记的.class对象到内存中。</p>
+<p>当然，第一个功能的实现不仅仅包括包扫描，也实现了一个用于负责完成已注册的BeanDefinition中的属性的占位符替换功能的BFPP即<code>PropertyPlaceholderConfigurer</code>。具体的功能就是将注解中的形如<code>$&#123;xxxx&#125;</code>根据配置文件（如.properties）的信息进行替换。</p>
+<h2 id="PropertyPlaceholderConfigurer"><a href="#PropertyPlaceholderConfigurer" class="headerlink" title="PropertyPlaceholderConfigurer"></a>PropertyPlaceholderConfigurer</h2><p>核心的实现就是postProcessBeanFactory，说实话逻辑比较简单，写的比较慢主要是因为对Java的常见api没到特别熟悉的地步。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">postProcessBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException &#123;</span><br><span class="line">      <span class="comment">//拿到对应的Properties文件，然后去把所有的属性中有占位符的BeanDefinition处理了。</span></span><br><span class="line">      ResourceLoader resourceLoader=<span class="keyword">new</span> <span class="title class_">DefaultResourceLoader</span>();</span><br><span class="line">      Resource resource=resourceLoader.getResource(location);</span><br><span class="line">      InputStream inputStream=<span class="literal">null</span>;</span><br><span class="line">      Properties properties=<span class="keyword">new</span> <span class="title class_">Properties</span>();</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">          inputStream=resource.getInputStream();</span><br><span class="line">          properties.load(inputStream);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">             <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">BeansException</span>(<span class="string">&quot;Failed to load properties from &quot;</span> + location, e);</span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      String[] beanDefinitions=beanFactory.getBeanDefinitionNameStrings();</span><br><span class="line">      <span class="keyword">for</span> (String name : beanDefinitions) &#123;</span><br><span class="line">          BeanDefinition beanDefinition=beanFactory.getBeanDefinition(name);</span><br><span class="line">          PropertyValues propertyValues=beanDefinition.getPropertyValues();</span><br><span class="line">          <span class="keyword">for</span>(PropertyValue propertyValue:propertyValues.getPropertyValues())&#123;</span><br><span class="line">              Object value=propertyValue.getValue();</span><br><span class="line">              <span class="keyword">if</span>(!(value <span class="keyword">instanceof</span> String)) <span class="keyword">continue</span>;</span><br><span class="line">                  propertyValues.addProperty(<span class="keyword">new</span> <span class="title class_">PropertyValue</span>(propertyValue.getName(), resolvePlaceholder((String)value, properties)));</span><br><span class="line">              &#125;</span><br><span class="line">          &#125;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">resolvePlaceholder</span><span class="params">(String strVal,Properties properties)</span>&#123;</span><br><span class="line">      StringBuffer pStr=<span class="keyword">new</span> <span class="title class_">StringBuffer</span>((String)strVal);</span><br><span class="line">      <span class="type">int</span> startIndex=pStr.indexOf(DEFAULT_PLACEHOLDER_PREFIX);</span><br><span class="line">      <span class="type">int</span> endIndex=pStr.indexOf(DEFAULT_PLACEHOLDER_SUFFIX);</span><br><span class="line">      <span class="comment">//无法解析</span></span><br><span class="line">      <span class="keyword">if</span>(startIndex==-<span class="number">1</span>||endIndex==-<span class="number">1</span>)&#123;</span><br><span class="line">          <span class="keyword">return</span> strVal;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span>(startIndex!=-<span class="number">1</span>&amp;&amp;endIndex!=-<span class="number">1</span>&amp;&amp;startIndex&lt;endIndex)&#123;</span><br><span class="line">          String propKey=pStr.substring(startIndex+<span class="number">2</span>,endIndex);</span><br><span class="line">          String propValue=properties.getProperty(propKey);</span><br><span class="line">          <span class="keyword">if</span>(propValue==<span class="literal">null</span>)&#123;</span><br><span class="line">          System.out.println(<span class="string">&quot;Warning: Could not resolve placeholder &#x27;$&#123;&quot;</span> + propKey + <span class="string">&quot;&#125;&#x27; in value \&quot;&quot;</span> + strVal + <span class="string">&quot;\&quot;, keeping original value&quot;</span>);</span><br><span class="line">          </span><br><span class="line">          <span class="keyword">return</span> strVal;</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="comment">//注意属性的修改不是直接改某个属性的值，而是直接加一个新的property对象，之后属性注入的时候会覆盖。</span></span><br><span class="line">          pStr.replace(startIndex, endIndex+<span class="number">1</span>,propValue);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> pStr.toString();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">      </span><br></pre></td></tr></table></figure>
+
+<p>这里的实现有一个比较大的问题，就是仅仅考虑了只有一个占位符的情形，并没有处理字符串中所有的占位符。（这个也简单，加一个while的事）</p>
+<p>其实核心的实现也比较简单，就是拿到占位符中的字符串作为键去相关的配置文件中找值。</p>
+<p>不过需要稍微注意下两种边界情况：</p>
+<ul>
+<li>不能解析字符串中的占位符</li>
+<li>在配置文件中找不到对应的键值</li>
+</ul>
+<p>第一种返回原字符串，这样可以适配后续属性注入中使用的责任链模式。第二种的话目前的处理方式也是返回原字符串，同时报了一个简单的警告。</p>
+<h2 id="ClassPathScanningCandidateComponentProvider"><a href="#ClassPathScanningCandidateComponentProvider" class="headerlink" title="ClassPathScanningCandidateComponentProvider"></a>ClassPathScanningCandidateComponentProvider</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ClassPathScanningCandidateComponentProvider</span> &#123;</span><br><span class="line">     <span class="keyword">public</span> Set&lt;BeanDefinition&gt; <span class="title function_">findCandidateComponents</span><span class="params">(String basePackage)</span>&#123;</span><br><span class="line">          Set&lt;BeanDefinition&gt; candidates=<span class="keyword">new</span> <span class="title class_">LinkedHashSet</span>&lt;&gt;();</span><br><span class="line">          Set&lt;Class&lt;?&gt;&gt; clazzs=ClassUtil.scanPackageByAnnotation(basePackage,Component.class);</span><br><span class="line">          <span class="keyword">for</span> (Class&lt;?&gt; clazz : clazzs) &#123;</span><br><span class="line">               candidates.add(<span class="keyword">new</span> <span class="title class_">BeanDefinition</span>(clazz));</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">return</span> candidates;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>核心就一个：ClassUtil.scanPackageByAnnotation(basePackage,Component.class);负责加载指定包路径下的所有带有<code>@Component</code>标记的.class文件</p>
+<p>没啥说的。</p>
+<h2 id="ClassPathBeanDefinitionScanner"><a href="#ClassPathBeanDefinitionScanner" class="headerlink" title="ClassPathBeanDefinitionScanner"></a>ClassPathBeanDefinitionScanner</h2><p>调用findCandidateComponents得到的BeanDefinition集合后，还需要根据<code>@Componnet</code>或者<code>@Scope</code>中的值设置Bean ID和Scope。</p>
+<h2 id="XmlBeanDefinitionReader"><a href="#XmlBeanDefinitionReader" class="headerlink" title="XmlBeanDefinitionReader"></a>XmlBeanDefinitionReader</h2><p>解析xml文件的逻辑需要进行适当改造，即需要加一个判断xml的节点的类型。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="string">&quot;component-scan&quot;</span>.equals(element.getName())) &#123;</span><br><span class="line">               <span class="type">String</span> <span class="variable">basePackageStr</span> <span class="operator">=</span> element.attributeValue(<span class="string">&quot;base-package&quot;</span>);</span><br><span class="line">               beanDefinitionRegistry.registryBeanDefinition(<span class="string">&quot;com.zane.mini_spring.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor&quot;</span>, <span class="keyword">new</span> <span class="title class_">BeanDefinition</span>(AutowiredAnnotationBeanPostProcessor.class));</span><br><span class="line">               <span class="keyword">if</span> (StrUtil.isEmptyIfStr(basePackageStr)) &#123;</span><br><span class="line">                   <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">BeansException</span>(<span class="string">&quot;The value of base-package attribute can not be empty or null&quot;</span>);</span><br><span class="line">               &#125;</span><br><span class="line">               scanPackage(basePackageStr);</span><br><span class="line">           &#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>以上是关于扫描包路径注册Bean的核心实现逻辑。</p>
+<p>之后是结合注解完成属性注入的实现。</p>
+<h2 id="功能二结构图"><a href="#功能二结构图" class="headerlink" title="功能二结构图"></a>功能二结构图</h2><p><img src="https://bugstack.cn/assets/images/spring/spring-15-02.png" alt="功能二结构图" loading='lazy'></p>
+<p>目标是实现将<strong>注解的属性填充到对应的字段</strong>。</p>
+<p>由于属性字段可能是Bean对象，所以需要对Bean对象和非Bean对象的属性进行区分，在注解上体现为：Bean对象是<code>@Autowired</code>和<code>@Value</code></p>
+<p>下面看相应注解的定义。</p>
+<h2 id="属性相关注解"><a href="#属性相关注解" class="headerlink" title="属性相关注解"></a>属性相关注解</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="meta">@Target(&#123;ElementType.FIELD,ElementType.METHOD,ElementType.PARAMETER,ElementType.CONSTRUCTOR&#125;)</span></span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Value &#123;</span><br><span class="line">    String <span class="title function_">value</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Target(&#123;ElementType.FIELD,ElementType.CONSTRUCTOR,ElementType.METHOD&#125;)</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Autowired &#123;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@Target(&#123;ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER, ElementType.TYPE, ElementType.ANNOTATION_TYPE&#125;)</span></span><br><span class="line"><span class="meta">@Inherited</span></span><br><span class="line"><span class="meta">@Retention(RetentionPolicy.RUNTIME)</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Qualifier &#123;</span><br><span class="line">    String <span class="title function_">value</span><span class="params">()</span> <span class="keyword">default</span> <span class="string">&quot;&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这里要关注的是元注解<code>@Target</code> 的含义。他指的是该注解的可以修饰的对象。</p>
+<p>可能的问题：</p>
+<ul>
+<li>为什么<code>@Value</code>可以放在Method上？如果一个方法有多个参数我怎么知道这个Value的值对应的是哪一个参数？<ul>
+<li>一般<code>@Value</code>修饰的都是单个参数的setter方法，这本质上就是通过注入到setter方法的参数实现，如果有多个参数一般会使用<code>ElementType.PARAMETER</code>作用域范围的，</li>
+</ul>
+</li>
+<li>这个<code>ElementType.METHOD</code>和<code>ElementType.CONSTRUCTOR</code>有什么区别？<ul>
+<li>前者指的是普通的方法，后者特指构造方法，注意前者不能覆盖后者。</li>
+</ul>
+</li>
+<li><code>@Inherited</code>是什么意思？<ul>
+<li>指子类可继承父类的该注解。</li>
+</ul>
+</li>
+</ul>
+<p><code>@Qualifier</code>是用于指定Bean的名称的注解，<strong>如果没有该注解默认使用类名作为Bean ID</strong>。</p>
+<p>注解实现之后，就可以来解决属性注入了。在此之前我们必须明确几个问题。实现属性注入有两种方式：</p>
+<ul>
+<li>在加载BeanDefinition之后，将字段加入到BeanDefinition的PropertyValues的属性中。这需要通过BFPP实现</li>
+<li>在实例化Bean的过程中，通过BPP实现属性注入。</li>
+</ul>
+<p>第一种方式是错的。由前面的<code>@Value</code>与<code>@Autowired</code>可知，属性注入不仅仅可以通过静态字段值注入，也可以通过修饰在方法上的参数实现。<strong>后者需要在实例化之后才可以实现</strong>，但是在BFPP执行的时候，还没有进入Bean的实例化阶段，所以必然是由BPP来完成。</p>
+<p>本次的实现中，是通过<code>AutowiredAnnotationBeanPostProcessor</code>这一BPP实现的，注入的时机是在实例化之后，属性注入（applyBeanPropertyValues）之后。这个时机影响的就是<strong>xml和注解属性的优先级的问题</strong>，没有其他重要的影响。</p>
+<p>属性注入的实现是按照注解类型来处理的。</p>
+<p>在实现属性注入的具体逻辑之前，我们需要做的一个前置工作是处理属性中相关的配置属性的替换工作。由于各种配置来源不一,对应的占位符形式各样，所以替换的逻辑也不一样。本次实现中，抽象出了<code>StringValueResolver</code>来专门处理这一个替换配置的逻辑。</p>
+<h2 id="StringValueResolver"><a href="#StringValueResolver" class="headerlink" title="StringValueResolver"></a>StringValueResolver</h2><p><code>StringValueResolver</code>属于BFPP的基础设施，属于用户自定义的第三方Bean属性注入的处理器。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> List&lt;StringValueResolver&gt; embeddedValueResolvers=<span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br></pre></td></tr></table></figure>
+
+<p>这是在<code>AbstractBeanFactoryz</code>中的存储数据结构。</p>
+<p>当处理一个属性字段的配置属性替换时，是通过<strong>责任链模式</strong>来处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">resolveEmbeddedValue</span><span class="params">(String strValue)</span> &#123;</span><br><span class="line">    String result=<span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">for</span> (StringValueResolver resolver : embeddedValueResolvers) &#123;</span><br><span class="line">        result=resolver.resolveStringValue(strValue);</span><br><span class="line">        <span class="keyword">if</span>(result!=<span class="literal">null</span>) <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//所有解析器都解析不了，返回原值</span></span><br><span class="line">    <span class="keyword">return</span> strValue;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>说是责任链，本质就是一个一个让<code>StringValueResolver</code>去试,当前不能处理就交给下一个处理，如果都不能处理就返回原值。</p>
+<p>因为当前项目的实现还是比较简单的，所以只有一个<code>PlaceholderResolvingStringValueResolver</code>,但是理想情况下应该是有一个专门处理注册并初始化<code>StringValueResolver</code>的BFPP（毕竟要处理所有的Bean，所以要先于普通Bean的生命周期初始化）或是在BeanFactory初始化中增加对应的逻辑，之后如果想处理BeanDefinition的PropertyValues或者注解中的属性注入就直接调用BeanFactory提供的接口就可以了。</p>
+<p>但是目前，这个StringValueResolver仍然是交由<code>PropertyPlaceholderConfigurer</code>，这是与单一职责相悖的。</p>
+<h2 id="AutowiredAnnotationBeanPostProcessor"><a href="#AutowiredAnnotationBeanPostProcessor" class="headerlink" title="AutowiredAnnotationBeanPostProcessor"></a>AutowiredAnnotationBeanPostProcessor</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> PropertyValues <span class="title function_">postProcessPropertyValues</span><span class="params">(PropertyValues pvs, Object bean, String beanName)</span> &#123;</span><br><span class="line">      <span class="comment">//先处理@Value的相关注解</span></span><br><span class="line">      processValueAnnotation(bean);</span><br><span class="line">      </span><br><span class="line">      processAutowiredAnnotation(bean);</span><br><span class="line"></span><br><span class="line">      <span class="keyword">return</span> pvs;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">processAutowiredAnnotation</span><span class="params">(Object bean)</span> &#123;</span><br><span class="line">      Class&lt;?&gt; clazz=bean.getClass();</span><br><span class="line">      Field[] fields=clazz.getDeclaredFields();</span><br><span class="line">      <span class="keyword">for</span> (Field field : fields) &#123;</span><br><span class="line">          <span class="keyword">if</span>(field.isAnnotationPresent(Autowired.class))&#123;</span><br><span class="line">              <span class="comment">//先看看有无Qualifier注解,有的话就从中取出Bean ID。</span></span><br><span class="line">              String beanName=<span class="literal">null</span>;</span><br><span class="line">              <span class="keyword">if</span>(field.isAnnotationPresent(Qualifier.class))&#123;</span><br><span class="line">                  Qualifier qualifierAnnotation=field.getAnnotation(Qualifier.class);</span><br><span class="line">                  beanName=qualifierAnnotation.value();</span><br><span class="line">              &#125;</span><br><span class="line">              <span class="keyword">if</span>(beanName==<span class="literal">null</span>||StrUtil.isEmptyIfStr(beanName))&#123;</span><br><span class="line">                  beanName=field.getName();</span><br><span class="line">              &#125;</span><br><span class="line">              Object autowiredBean=beanFactory.getBean(beanName);</span><br><span class="line">              BeanUtil.setFieldValue(bean, field.getName(), autowiredBean);</span><br><span class="line">          &#125;</span><br><span class="line">      &#125;    </span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">processValueAnnotation</span><span class="params">(Object bean)</span> &#123;</span><br><span class="line">      <span class="comment">//暂时只考虑在字段上的情形</span></span><br><span class="line">      Class&lt;?&gt; clazz=bean.getClass();</span><br><span class="line">      Field[] fields=clazz.getDeclaredFields();</span><br><span class="line">      <span class="keyword">for</span> (Field field : fields) &#123;</span><br><span class="line">          <span class="keyword">if</span>(field.isAnnotationPresent(Value.class))&#123;</span><br><span class="line">              </span><br><span class="line">              Value annotation=field.getAnnotation(Value.class);</span><br><span class="line">              <span class="comment">//这里是将这个value的属性进行解析之后得到的字符串(如有占位字符)。</span></span><br><span class="line">              String strVal=beanFactory.resolveEmbeddedValue(annotation.value());</span><br><span class="line">              <span class="comment">//根据该字段的实际类型进行强转.目前的实现是借助第三方的转换器实现，仅仅支持基本类型与对应的包装类</span></span><br><span class="line">              <span class="keyword">try</span> &#123;</span><br><span class="line">                  BeanUtil.setFieldValue(bean, field.getName(),Convert.convert(field.getType(), strVal));</span><br><span class="line">              &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                  <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">BeansException</span>(</span><br><span class="line">                      <span class="string">&quot;注入 @Value 失败 [字段: &quot;</span> + field.getName() + </span><br><span class="line">                      <span class="string">&quot;, 值: &quot;</span> + annotation.value() + <span class="string">&quot;]&quot;</span>, </span><br><span class="line">                      e</span><br><span class="line">                  );</span><br><span class="line">              &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">          &#125;</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>@Value的逻辑也很简单，就是去先用resolver去处理属性之后，就将对应的字符串字面值去转换成这个字段所对应类型的值，但实际上这里的转换逻辑其实挺复杂的，你不仅需要考虑基本的数据类型。你还需要去考虑那些诸如集合类型的复杂数据结构，这里我没有去实现，交由hutool的Convert类去做了。</p>
+<p>另外，这里也仅仅是考虑了字段的类型，在方法上的注解的情况并没有考虑。</p>
+<hr>
+<h2 id="功能三"><a href="#功能三" class="headerlink" title="功能三"></a>功能三</h2><p>这个功能并没有什么新的编码，只不过是将原先的代理对象的生成时机推迟到属性注入之后，也就是在初始化之后去做。</p>
+<h1 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h1><p>到此为止，核心功能差不多做完了，还有三级缓存跟数据类型转换工厂没做，打算过阵子做。最近得学学别的。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://Zane-Woo.github.io">Zane Woo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://zane-woo.github.io/2026/01/17/%E6%89%8B%E5%86%99spring-day13/">https://zane-woo.github.io/2026/01/17/%E6%89%8B%E5%86%99spring-day13/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/coding/">coding</a><a class="post-meta__tags" href="/tags/%E6%B3%A8%E8%A7%A3/">注解</a><a class="post-meta__tags" href="/tags/%E5%8F%8D%E5%B0%84/">反射</a></div><div class="post-share"><div class="social-share" data-image="/img/img0.webp" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/01/12/%E6%89%8B%E5%86%99spring-day12/" title="手写spring-day12"><img class="cover" src="/img/img3.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post" loading='lazy'><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">手写spring-day12</div></div><div class="info-2"><div class="info-item-1">本次更新主要是将现有的AOP模式与spring框架结合</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/12/22/%E6%89%8B%E5%86%99spring-day1/" title="手写spring-day1"><img class="cover" src="/img/img1.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-22</div><div class="info-item-2">手写spring-day1</div></div><div class="info-2"><div class="info-item-1">跟bugstack写的一个迷你spring，目的是深入学习spring并且拯救我的实操。</div></div></div></a><a class="pagination-related" href="/2026/01/11/%E6%89%8B%E5%86%99spring-day11/" title="手写spring-day11"><img class="cover" src="/img/img4.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">手写spring-day11</div></div><div class="info-2"><div class="info-item-1">本次主要是新增AOP模式实现</div></div></div></a><a class="pagination-related" href="/2026/01/09/%E6%89%8B%E5%86%99spring-day10/" title="手写spring-day10"><img class="cover" src="/img/img2.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-09</div><div class="info-item-2">手写spring-day10</div></div><div class="info-2"><div class="info-item-1">新增容器事件的监听机制</div></div></div></a><a class="pagination-related" href="/2025/12/24/%E6%89%8B%E5%86%99spring-day3/" title="手写spring-day3"><img class="cover" src="/img/img2.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-24</div><div class="info-item-2">手写spring-day3</div></div><div class="info-2"><div class="info-item-1">跟bugstack写的一个迷你spring，目的是深入学习spring并且拯救我的实操。</div></div></div></a><a class="pagination-related" href="/2026/01/12/%E6%89%8B%E5%86%99spring-day12/" title="手写spring-day12"><img class="cover" src="/img/img3.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-12</div><div class="info-item-2">手写spring-day12</div></div><div class="info-2"><div class="info-item-1">本次更新主要是将现有的AOP模式与spring框架结合</div></div></div></a><a class="pagination-related" href="/2025/12/23/%E6%89%8B%E5%86%99spring-day2/" title="手写spring-day2"><img class="cover" src="/img/img4.webp" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-23</div><div class="info-item-2">手写spring-day2</div></div><div class="info-2"><div class="info-item-1">跟bugstack写的一个迷你spring，目的是深入学习spring并且拯救我的实操</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Zane Woo</div><div class="author-info-description">在路上</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">23</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">29</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">15</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Zane-Woo"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Zane-Woo" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:wuz33631@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="https://space.bilibili.com/3546378057812838" target="_blank" title="Bilibili"><i class="fab fa-bilibili" style="color: #00A1D6;"></i></a><a class="social-icon" href="https://steamcommunity.com/id/76561199534301889" target="_blank" title="Steam"><i class="fab fa-steam" style="color: #000000;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Hi!🙂 I`m Zane. <br>🎉 感谢访问我的个人博客<br>💡 欢迎留言交流</div></div><div class="card-widget card-post-heatmap"><div class="card-content"><div class="item-headline"><i class="fas fa-calendar-alt"></i><span>Recent Commits</span></div><div class="post-heatmap"><div class="post-heatmap__grid"><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0" title="2025-09-20：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-21：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-29：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-18：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-19：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-20：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-21：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-29：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-31：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-18：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-19：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-20：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-21：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-29：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-05：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-06：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-07：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-09：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-10：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-11：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-12：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-13：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-18：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-19：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-20：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-21：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-22：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-23：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-24：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-25：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-26：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-27：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-28：0 篇"></span><span class="post-heatmap__day lv-2" title="2025-12-29：2 篇"></span><span class="post-heatmap__day lv-2" title="2025-12-30：2 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-31：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-01：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-02：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-03：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-08：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-09：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-10：0 篇"></span><span class="post-heatmap__day lv-2" title="2026-01-11：2 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-12：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-16：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-17：1 篇"></span></div><div class="post-heatmap__legend"><span>少</span><span class="post-heatmap__legend-scale" title="发文数强度"><i class="lv-0"></i><i class="lv-1"></i><i class="lv-2"></i><i class="lv-3"></i><i class="lv-4"></i></span><span>多</span></div></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%83%8C%E6%99%AF"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%90%84%E5%8A%9F%E8%83%BD%E7%9A%84%E7%B1%BB-%E6%8E%A5%E5%8F%A3%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.</span> <span class="toc-text">各功能的类&#x2F;接口实现</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%E4%B8%80%E7%BB%93%E6%9E%84%E5%9B%BE"><span class="toc-number">2.1.</span> <span class="toc-text">功能一结构图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PropertyPlaceholderConfigurer"><span class="toc-number">2.2.</span> <span class="toc-text">PropertyPlaceholderConfigurer</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ClassPathScanningCandidateComponentProvider"><span class="toc-number">2.3.</span> <span class="toc-text">ClassPathScanningCandidateComponentProvider</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ClassPathBeanDefinitionScanner"><span class="toc-number">2.4.</span> <span class="toc-text">ClassPathBeanDefinitionScanner</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#XmlBeanDefinitionReader"><span class="toc-number">2.5.</span> <span class="toc-text">XmlBeanDefinitionReader</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%E4%BA%8C%E7%BB%93%E6%9E%84%E5%9B%BE"><span class="toc-number">2.6.</span> <span class="toc-text">功能二结构图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B1%9E%E6%80%A7%E7%9B%B8%E5%85%B3%E6%B3%A8%E8%A7%A3"><span class="toc-number">2.7.</span> <span class="toc-text">属性相关注解</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#StringValueResolver"><span class="toc-number">2.8.</span> <span class="toc-text">StringValueResolver</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AutowiredAnnotationBeanPostProcessor"><span class="toc-number">2.9.</span> <span class="toc-text">AutowiredAnnotationBeanPostProcessor</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%E4%B8%89"><span class="toc-number">2.10.</span> <span class="toc-text">功能三</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%90%8E%E8%AE%B0"><span class="toc-number">3.</span> <span class="toc-text">后记</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/17/%E6%89%8B%E5%86%99spring-day13/" title="手写spring-day13"><img src="/img/img0.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day13"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/17/%E6%89%8B%E5%86%99spring-day13/" title="手写spring-day13">手写spring-day13</a><time datetime="2026-01-17T04:47:57.000Z" title="Created 2026-01-17 12:47:57">2026-01-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/12/%E6%89%8B%E5%86%99spring-day12/" title="手写spring-day12"><img src="/img/img3.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day12"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/12/%E6%89%8B%E5%86%99spring-day12/" title="手写spring-day12">手写spring-day12</a><time datetime="2026-01-12T03:36:25.000Z" title="Created 2026-01-12 11:36:25">2026-01-12</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/HashMap%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/" title="HashMap源码学习"><img src="/img/img1.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HashMap源码学习"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/11/HashMap%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/" title="HashMap源码学习">HashMap源码学习</a><time datetime="2026-01-11T13:52:49.000Z" title="Created 2026-01-11 21:52:49">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/%E6%89%8B%E5%86%99spring-day11/" title="手写spring-day11"><img src="/img/img4.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day11"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/11/%E6%89%8B%E5%86%99spring-day11/" title="手写spring-day11">手写spring-day11</a><time datetime="2026-01-11T04:41:08.000Z" title="Created 2026-01-11 12:41:08">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/09/%E6%89%8B%E5%86%99spring-day10/" title="手写spring-day10"><img src="/img/img2.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day10"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/09/%E6%89%8B%E5%86%99spring-day10/" title="手写spring-day10">手写spring-day10</a><time datetime="2026-01-09T04:10:15.000Z" title="Created 2026-01-09 12:10:15">2026-01-09</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/img4.webp);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Zane Woo</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'Zane-Woo/Zane-Woo.github.io',
+      'data-repo-id': 'R_kgDOQkAk7Q',
+      'data-category-id': 'DIC_kwDOQkAk7c4Czfzm',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !true) {
+    if (true) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><script src="/js/mermaid-zoom.js"></script><script src="/js/post-heatmap-snake.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="99" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/canvas-nest.min.js"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-heart.min.js" async="async" mobile="false"></script><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-show-text.min.js" data-mobile="false" data-text="luck++,芝士++,喵,喵喵,喵喵喵" data-fontsize="15px" data-random="true" async="async"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["meta[property=\"og:image\"]","meta[property=\"og:title\"]","meta[property=\"og:url\"]","meta[property=\"og:description\"]","link[rel=\"canonical\"]","head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      false
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script>(() => {
+  const option = null
+  const config = {"site_uv":true,"site_pv":true,"page_pv":true,"token":"api_ouaZQLvYMLpqt6M5rtMs1VUlqKlcHLnX"}
+
+  const runTrack = () => {
+    if (typeof umami !== 'undefined' && typeof umami.track === 'function') {
+      umami.track(props => ({ ...props, url: window.location.pathname, title: GLOBAL_CONFIG_SITE.title }))
+    } else {
+      console.warn('Umami Analytics: umami.track is not available')
+    }
+  }
+
+  const loadUmamiJS = () => {
+    btf.getScript('https://cloud.umami.is/script.js', {
+      'data-website-id': 'c159e504-5916-4bc3-aa25-dc8c339849d2',
+      'data-auto-track': 'false',
+      ...option
+    }).then(() => {
+      runTrack()
+    }).catch(error => {
+      console.error('Umami Analytics: Error loading script', error)
+    })
+  }
+
+  const getData = async () => {
+    try {
+      const now = Date.now()
+      const headerList = { 'Accept': 'application/json' }
+
+      // Umami Cloud gives an API Key that starts with "api_"
+      // - API Key: use x-umami-api-key
+      // - JWT token: use Authorization: Bearer <token>
+      if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+        headerList['x-umami-api-key'] = config.token
+      } else if (config && config.token) {
+        headerList['Authorization'] = `Bearer ${config.token}`
+      }
+
+      // Note: Umami Cloud v1 /stats endpoint does NOT filter by url reliably.
+      // We use it only for site-level totals (UV/PV). Per-post PV uses metrics(type=url).
+      const res = await fetch(`https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/stats?startAt=0000000000&endAt=${now}`, {
+        method: "GET",
+        headers: headerList
+      })
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Umami Analytics: Failed to fetch data', error)
+      throw error
+    }
+  }
+
+  // Get per-page PV by aggregating Umami "pageview" events.
+  // Reason: Umami Cloud v1 metrics(type=url) returns 1 per page for this site (likely sessions/unique),
+  // and /stats does not support url filtering. /events is reliable and returns pageview events with urlPath.
+  const getPageviewMap = async (force = false) => {
+    const now = Date.now()
+    const headerList = { 'Accept': 'application/json' }
+
+    if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+      headerList['x-umami-api-key'] = config.token
+    } else if (config && config.token) {
+      headerList['Authorization'] = `Bearer ${config.token}`
+    }
+
+    const cacheKey = 'umami_pv_map_v1'
+    const cached = btf?.saveToLocal?.get?.(cacheKey)
+    // Keep cache window short so PV feels "near real-time" when navigating with PJAX.
+    // (Umami Cloud may take ~0.5-2s to persist events; we also do a delayed forced refresh after tracking.)
+    if (!force && cached && cached.data && (Date.now() - cached.ts) < 10 * 1000) {
+      return cached.data
+    }
+
+    const map = new Map()
+    const pageSize = 500
+    let page = 1
+    let total = Infinity
+
+    while ((page - 1) * pageSize < total) {
+      const url = `https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/events?startAt=0000000000&endAt=${now}&page=${page}&pageSize=${pageSize}`
+      const res = await fetch(url, { method: 'GET', headers: headerList })
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+      const json = await res.json()
+
+      const data = Array.isArray(json?.data) ? json.data : []
+      total = typeof json?.count === 'number' ? json.count : data.length
+
+      for (const ev of data) {
+        // eventType===1 is pageview for Umami v1
+        const path = normalizePath(ev?.urlPath || '')
+        if (!path) continue
+        map.set(path, (map.get(path) || 0) + 1)
+      }
+
+      if (data.length < pageSize) break
+      page += 1
+    }
+
+    const plain = Object.fromEntries(map)
+    btf?.saveToLocal?.set?.(cacheKey, { ts: Date.now(), data: plain }, 1)
+    return plain
+  }
+
+  const normalizePath = (p) => {
+    if (!p || typeof p !== 'string') return ''
+    // Keep only path part, ensure leading slash and trailing slash
+    const raw = p.split('?')[0].split('#')[0]
+    let path = raw
+    // Decode URL-encoded pathname so it matches Umami metrics output (which can be decoded)
+    try {
+      // decodeURIComponent is stricter; guard with try/catch
+      path = decodeURIComponent(path)
+    } catch (e) {
+      try { path = decodeURI(path) } catch (_) {}
+    }
+    if (!path.startsWith('/')) path = '/' + path.replace(/^\/*/, '')
+    return path.endsWith('/') ? path : path + '/'
+  }
+
+  const insertData = async () => {
+    try {
+      if (config.site_uv || config.site_pv) {
+        const data = await getData()
+
+        if (config.site_uv) {
+          const siteUV = document.getElementById('umami-site-uv')
+          const uv = data && data.visitors != null
+            ? (typeof data.visitors === 'object' && data.visitors !== null && typeof data.visitors.value !== 'undefined'
+              ? data.visitors.value
+              : data.visitors)
+            : undefined
+          if (siteUV && typeof uv !== 'undefined') {
+            siteUV.textContent = uv
+          } else if (siteUV) {
+            console.warn('Umami Analytics: Invalid site UV data received')
+          }
+        }
+
+        if (config.site_pv) {
+          const sitePV = document.getElementById('umami-site-pv')
+          const pv = data && data.pageviews != null
+            ? (typeof data.pageviews === 'object' && data.pageviews !== null && typeof data.pageviews.value !== 'undefined'
+              ? data.pageviews.value
+              : data.pageviews)
+            : undefined
+          if (sitePV && typeof pv !== 'undefined') {
+            sitePV.textContent = pv
+          } else if (sitePV) {
+            console.warn('Umami Analytics: Invalid site PV data received')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert data', error)
+    }
+  }
+
+  const insertListPV = async () => {
+    try {
+      if (!config.page_pv) return
+      const pvObj = await getPageviewMap(false)
+      const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+      const nodes = document.querySelectorAll('.umami-post-pv[data-umami-url]')
+      if (nodes && nodes.length > 0) {
+        nodes.forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          const pv = map.has(key) ? map.get(key) : 0
+          node.textContent = pv
+        })
+      }
+
+      // Also update per-post PV on post pages (use the same url metrics map)
+      if (GLOBAL_CONFIG_SITE.pageType === 'post' && config.page_pv) {
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          const pv = map.has(currentKey) ? map.get(currentKey) : 0
+          pagePV.textContent = pv
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert list pv', error)
+    }
+  }
+
+  // After tracking, do a delayed forced refresh so the UI reflects the newest PV.
+  const refreshPVAfterTrack = () => {
+    if (!config.page_pv) return
+    // Give Umami a moment to persist the event, then bypass cache once.
+    setTimeout(async () => {
+      try {
+        const pvObj = await getPageviewMap(true)
+        const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+        // update list nodes if present
+        document.querySelectorAll('.umami-post-pv[data-umami-url]').forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          node.textContent = map.has(key) ? map.get(key) : 0
+        })
+
+        // update current post PV if present
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          pagePV.textContent = map.has(currentKey) ? map.get(currentKey) : 0
+        }
+      } catch (e) {
+        console.error('Umami Analytics: Failed to refresh pv after track', e)
+      }
+    }, 1200)
+  }
+
+  btf.addGlobalFn('pjaxComplete', runTrack, 'umami_analytics_run_track')
+  btf.addGlobalFn('pjaxComplete', insertData, 'umami_analytics_insert')
+  btf.addGlobalFn('pjaxComplete', insertListPV, 'umami_analytics_insert_list_pv')
+  btf.addGlobalFn('pjaxComplete', refreshPVAfterTrack, 'umami_analytics_refresh_pv_after_track')
+
+
+  loadUmamiJS()
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', insertData)
+    document.addEventListener('DOMContentLoaded', insertListPV)
+    document.addEventListener('DOMContentLoaded', refreshPVAfterTrack)
+  } else {
+    setTimeout(insertData, 100)
+    setTimeout(insertListPV, 150)
+    setTimeout(refreshPVAfterTrack, 200)
+  }
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading Database</span></div><div class="local-search-input"><input placeholder="搜索文章..." type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"scale":1.1,"jsonPath":"https://raw.githubusercontent.com/iCharlesZ/vscode-live2d-models/master/model-library/bilibili-22/index.json"},"display":{"position":"left","width":260,"height":520,"hOffset":0,"vOffset":-40},"mobile":{"show":false,"scale":0.5},"react":{"opacityDefault":0.8,"opacityOnHover":0.2}});</script></body></html>
