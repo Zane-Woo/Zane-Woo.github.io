@@ -1,0 +1,1030 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>点评项目优化-消息队列 | Zane</title><meta name="author" content="Zane Woo"><meta name="copyright" content="Zane Woo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="变更概述 (Change Summary)将秒杀业务的异步下单消息队列从 Redis Stream 迁移至 RabbitMQ，引入企业级消息中间件特性（死信队列、并发消费、消息确认机制），以提升系统吞吐量、可靠性和可维护性。 核心改动：  消息队列基础设施：Redis Stream → RabbitMQ 消费模型：单线程轮询 → 多线程监听器容器（24-48 并发） 消息可靠性：手动 ACK +">
+<meta property="og:type" content="article">
+<meta property="og:title" content="点评项目优化-消息队列">
+<meta property="og:url" content="https://zane-woo.github.io/2026/01/18/%E7%82%B9%E8%AF%84%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96/index.html">
+<meta property="og:site_name" content="Zane">
+<meta property="og:description" content="变更概述 (Change Summary)将秒杀业务的异步下单消息队列从 Redis Stream 迁移至 RabbitMQ，引入企业级消息中间件特性（死信队列、并发消费、消息确认机制），以提升系统吞吐量、可靠性和可维护性。 核心改动：  消息队列基础设施：Redis Stream → RabbitMQ 消费模型：单线程轮询 → 多线程监听器容器（24-48 并发） 消息可靠性：手动 ACK +">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zane-woo.github.io/img/img2.webp">
+<meta property="article:published_time" content="2026-01-18T15:11:33.000Z">
+<meta property="article:modified_time" content="2026-01-19T09:07:04.601Z">
+<meta property="article:author" content="Zane Woo">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zane-woo.github.io/img/img2.webp"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "点评项目优化-消息队列",
+  "url": "https://zane-woo.github.io/2026/01/18/%E7%82%B9%E8%AF%84%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96/",
+  "image": "https://zane-woo.github.io/img/img2.webp",
+  "datePublished": "2026-01-18T15:11:33.000Z",
+  "dateModified": "2026-01-19T09:07:04.601Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Zane Woo",
+      "url": "https://Zane-Woo.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://zane-woo.github.io/2026/01/18/%E7%82%B9%E8%AF%84%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="manifest" href="/manifest.webmanifest"/><link rel="apple-touch-icon" sizes="180x180" href="/img/favicon.png"/><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png"/><link rel="icon" type="image/png" sizes="16x16" href="/img/favicon.png"/><link rel="mask-icon" href="/img/favicon.png" color="#5bbad5"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.json","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"No results found for: ${query}","hits_stats":"${hits} articles found"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '点评项目优化-消息队列',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="preload" as="image" href="/img/img0.webp"><link rel="preload" as="image" href="/img/avatar2.webp"><link rel="preload" as="image" href="/img/img3.webp"><link rel="preload" as="image" href="/img/img4.webp"><link rel="preload" as="image" href="/img/img5.webp"><link rel="preload" as="image" href="/img/img6.webp"><link rel="preload" as="image" href="/img/img7.webp"><link rel="dns-prefetch" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//cdn.jsdelivr.net" crossorigin><style>#site-info::before{content:"";display:block;width:150px;height:150px;margin:0 auto 30px;border-radius:50%;background:url(/img/avatar.webp) center/cover;border:3px solid rgba(255,255,255,0.8);box-shadow:0 5px 20px rgba(0,0,0,0.3);}</style><style>.card-widget,.recent-post-item{background:rgba(255,255,255,0.75)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;border:1px solid rgba(255,255,255,0.3)!important;box-shadow:0 8px 32px rgba(0,0,0,0.1)!important;}[data-theme="dark"] .card-widget,[data-theme="dark"] .recent-post-item{background:rgba(0,0,0,0.5)!important;border:1px solid rgba(255,255,255,0.1)!important;}</style><style>*,html,body{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/cursor.png'),auto!important;}a,button,input[type="submit"],input[type="button"],.btn,.pointer,[role="button"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/pointer.png'),pointer!important;}input:not([type="submit"]):not([type="button"]),textarea,[contenteditable="true"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/text.png'),text!important;}.disabled,[disabled]{cursor:not-allowed!important;}</style><style>html,body,#page-header,#content-inner,#aside-content,#footer,.card-widget,.recent-post-item,.layout>div,.post-content,.post,#rightside{transition:background-color .25s ease,color .25s ease,border-color .25s ease,box-shadow .25s ease!important;}@media (prefers-reduced-motion:reduce){html,body,#page-header,#content-inner,#aside-content,#footer,.card-widget,.recent-post-item,.layout>div,.post-content,.post,#rightside{transition:none!important;}}</style><link rel="stylesheet" href="/css/post-heatmap.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">Loading...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="web_bg" style="background-image: url(/img/img3.webp);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">29</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">15</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/img2.webp);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Zane</span></a><a class="nav-page-title" href="/"><span class="site-name">点评项目优化-消息队列</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">点评项目优化-消息队列</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-01-18T15:11:33.000Z" title="Created 2026-01-18 23:11:33">2026-01-18</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-01-19T09:07:04.601Z" title="Updated 2026-01-19 17:07:04">2026-01-19</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">Word Count:</span><span class="word-count">4.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">Reading Time:</span><span>16mins</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="umamiPV" data-path="/2026/01/18/%E7%82%B9%E8%AF%84%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96/"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><hr>
+<h2 id="变更概述-Change-Summary"><a href="#变更概述-Change-Summary" class="headerlink" title="变更概述 (Change Summary)"></a>变更概述 (Change Summary)</h2><p>将秒杀业务的异步下单消息队列从 <strong>Redis Stream</strong> 迁移至 <strong>RabbitMQ</strong>，引入企业级消息中间件特性（死信队列、并发消费、消息确认机制），以提升系统吞吐量、可靠性和可维护性。</p>
+<p><strong>核心改动</strong>：</p>
+<ul>
+<li>消息队列基础设施：Redis Stream → RabbitMQ</li>
+<li>消费模型：单线程轮询 → 多线程监听器容器（24-48 并发）</li>
+<li>消息可靠性：手动 ACK + 死信队列 + 重试机制</li>
+<li>架构解耦：Lua 脚本职责收敛至 Redis 原子操作，消息发送迁移至 Java 层</li>
+</ul>
+<hr>
+<h2 id="一、技术选型背景与决策依据"><a href="#一、技术选型背景与决策依据" class="headerlink" title="一、技术选型背景与决策依据"></a>一、技术选型背景与决策依据</h2><h3 id="1-1-原架构瓶颈分析"><a href="#1-1-原架构瓶颈分析" class="headerlink" title="1.1 原架构瓶颈分析"></a>1.1 原架构瓶颈分析</h3><h4 id="Redis-Stream-方案的局限性"><a href="#Redis-Stream-方案的局限性" class="headerlink" title="Redis Stream 方案的局限性"></a>Redis Stream 方案的局限性</h4><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Redis Stream 实现</th>
+<th>存在问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>吞吐量</strong></td>
+<td>单线程消费者 (<code>Executors.newSingleThreadExecutor</code>)</td>
+<td>CPU 利用率低，无法利用多核优势，峰值 TPS 受限</td>
+</tr>
+<tr>
+<td><strong>代码复杂度</strong></td>
+<td>手动轮询 (<code>XREAD</code>) + pending-list 异常处理</td>
+<td>需自行维护消费偏移、异常重试、ACK 逻辑，代码冗长</td>
+</tr>
+<tr>
+<td><strong>资源占用</strong></td>
+<td>消息堆积在 Redis 内存</td>
+<td>高并发时大量消息占用缓存内存，可能触发 OOM 或驱逐热点数据</td>
+</tr>
+<tr>
+<td><strong>可观测性</strong></td>
+<td>需通过 Redis 命令查看队列状态</td>
+<td>缺乏可视化监控，运维成本高</td>
+</tr>
+<tr>
+<td><strong>死信处理</strong></td>
+<td>手动实现 pending-list 循环查询</td>
+<td>异常消息处理逻辑复杂，容易遗漏</td>
+</tr>
+</tbody></table>
+<h4 id="典型性能瓶颈场景"><a href="#典型性能瓶颈场景" class="headerlink" title="典型性能瓶颈场景"></a>典型性能瓶颈场景</h4><p>在单线程消费模型下，假设单条订单处理耗时 50ms（包含锁等待、数据库 IO），理论 TPS 上限：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">TPS = 1000ms / 50ms = 20 TPS/核心</span><br></pre></td></tr></table></figure>
+
+<p>即使部署 8 核服务器，也仅能达到 160 TPS，远无法满足秒杀场景需求。</p>
+<h3 id="1-2-RabbitMQ-方案的优势"><a href="#1-2-RabbitMQ-方案的优势" class="headerlink" title="1.2 RabbitMQ 方案的优势"></a>1.2 RabbitMQ 方案的优势</h3><table>
+<thead>
+<tr>
+<th>能力维度</th>
+<th>RabbitMQ 实现</th>
+<th>带来的价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>并发消费</strong></td>
+<td>Spring AMQP 提供监听器容器，支持动态扩缩容（24-48 线程）</td>
+<td>吞吐量提升 10-20 倍，充分利用多核 CPU</td>
+</tr>
+<tr>
+<td><strong>消息可靠性</strong></td>
+<td>持久化 + ACK 机制 + 死信队列</td>
+<td>消息不丢失，异常自动路由至 DLQ 人工介入</td>
+</tr>
+<tr>
+<td><strong>框架集成</strong></td>
+<td>Spring Boot Starter 自动配置</td>
+<td>开发效率高，代码简洁（仅需 <code>@RabbitListener</code> 注解）</td>
+</tr>
+<tr>
+<td><strong>运维支持</strong></td>
+<td>Management UI + 插件生态</td>
+<td>可视化监控队列深度&#x2F;消费速率，支持 Prometheus 集成</td>
+</tr>
+<tr>
+<td><strong>解耦扩展</strong></td>
+<td>Topic Exchange 路由模式</td>
+<td>支持一对多消息分发（如订单消息同时推送给订单服务&#x2F;短信服务）</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-技术选型决策"><a href="#1-3-技术选型决策" class="headerlink" title="1.3 技术选型决策"></a>1.3 技术选型决策</h3><p><strong>为何不继续优化 Redis Stream？</strong></p>
+<ol>
+<li><strong>架构职责混乱</strong>：Redis 主责应为”缓存 + 原子操作”，而非”消息队列”。将 MQ 职责交由专业中间件更符合单一职责原则。</li>
+<li><strong>工程化成熟度</strong>：RabbitMQ 的死信、延迟、优先级等企业级特性已内置，Redis Stream 需大量自研。</li>
+<li><strong>社区生态</strong>：Spring AMQP 提供开箱即用的监听容器、线程池管理、异常处理，开发效率远超手动轮询。</li>
+</ol>
+<hr>
+<h2 id="二、系统架构变更"><a href="#二、系统架构变更" class="headerlink" title="二、系统架构变更"></a>二、系统架构变更</h2><h3 id="2-1-整体架构对比"><a href="#2-1-整体架构对比" class="headerlink" title="2.1 整体架构对比"></a>2.1 整体架构对比</h3><h4 id="旧架构（Redis-Stream）"><a href="#旧架构（Redis-Stream）" class="headerlink" title="旧架构（Redis Stream）"></a>旧架构（Redis Stream）</h4><div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    flowchart TB
+    Client[客户端] --&gt;|1. 秒杀请求| Service[VoucherOrderService]
+    Service --&gt;|2. Lua脚本扣减| Redis[(Redis)]
+    Redis --&gt;|3. XADD发消息| Stream[Redis Stream队列]
+    Service -.-&gt;|立即返回orderId| Client
+    
+    Stream --&gt;|4. XREAD轮询| Consumer[单线程消费者&lt;br&#x2F;&gt;while-true循环]
+    Consumer --&gt;|5. pending-list处理| Stream
+    Consumer --&gt;|6. 落库| MySQL[(MySQL)]
+    
+    style Consumer fill:#f9f,stroke:#333,stroke-width:2px
+    style Stream fill:#ff9,stroke:#333,stroke-width:2px
+  </pre></div>
+
+<p><strong>问题点</strong>：</p>
+<ul>
+<li>单线程消费（红色标注），无法并发处理</li>
+<li>Redis 同时承担缓存和消息队列职责</li>
+<li>消费者需要手动轮询，代码复杂</li>
+</ul>
+<h4 id="新架构（RabbitMQ）"><a href="#新架构（RabbitMQ）" class="headerlink" title="新架构（RabbitMQ）"></a>新架构（RabbitMQ）</h4><div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    flowchart TB
+    Client[客户端] --&gt;|1. 秒杀请求| Service[VoucherOrderService]
+    Service --&gt;|2. Lua脚本校验| Redis[(Redis&lt;br&#x2F;&gt;仅库存校验)]
+    Service --&gt;|3. convertAndSend| Exchange[RabbitMQ Exchange&lt;br&#x2F;&gt;seckill.topic]
+    Service -.-&gt;|立即返回orderId| Client
+    
+    Exchange --&gt;|4. 路由| Queue[业务队列&lt;br&#x2F;&gt;seckill.order.queue]
+    Queue --&gt;|5. 并发推送&lt;br&#x2F;&gt;24-48线程| Consumers[多线程消费者&lt;br&#x2F;&gt;VoucherOrderConsumer]
+    
+    Queue -.-&gt;|失败&#x2F;过期| DLX[死信交换机&lt;br&#x2F;&gt;seckill.dlx.topic]
+    DLX -.-&gt;|死信路由| DLQ[死信队列&lt;br&#x2F;&gt;seckill.dlx.queue]
+    
+    Consumers --&gt;|6. 分布式锁+事务| MySQL[(MySQL)]
+    Consumers --&gt;|ACK&#x2F;NACK| Queue
+    
+    style Consumers fill:#9f9,stroke:#333,stroke-width:2px
+    style Queue fill:#9cf,stroke:#333,stroke-width:2px
+    style DLQ fill:#f99,stroke:#333,stroke-width:2px
+  </pre></div>
+
+<p><strong>改进点</strong>：</p>
+<ul>
+<li>多线程并发消费（绿色标注），充分利用 CPU</li>
+<li>Redis 专注缓存和原子操作</li>
+<li>RabbitMQ 提供成熟的死信机制（红色标注）</li>
+</ul>
+<h3 id="2-2-RabbitMQ-拓扑结构设计"><a href="#2-2-RabbitMQ-拓扑结构设计" class="headerlink" title="2.2 RabbitMQ 拓扑结构设计"></a>2.2 RabbitMQ 拓扑结构设计</h3><div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    graph LR
+    Producer[生产者&lt;br&#x2F;&gt;VoucherOrderService] --&gt;|publish&lt;br&#x2F;&gt;rk&#x3D;seckill.order| E1[Exchange&lt;br&#x2F;&gt;seckill.topic]
+    E1 --&gt;|binding| Q1[Queue&lt;br&#x2F;&gt;seckill.order.queue&lt;br&#x2F;&gt;TTL&#x3D;30s,DLX配置]
+    Q1 --&gt;|consume| C[消费者&lt;br&#x2F;&gt;VoucherOrderConsumer&lt;br&#x2F;&gt;24-48并发]
+    
+    Q1 -.-&gt;|消息失败&#x2F;过期| E2[DLX Exchange&lt;br&#x2F;&gt;seckill.dlx.topic]
+    E2 -.-&gt;|binding| Q2[DLQ Queue&lt;br&#x2F;&gt;seckill.dlx.queue]
+    Q2 -.-&gt;|人工处理| Admin[运维&#x2F;告警]
+    
+    style E1 fill:#e1f5ff,stroke:#333,stroke-width:2px
+    style Q1 fill:#fff4e1,stroke:#333,stroke-width:2px
+    style E2 fill:#ffe1e1,stroke:#333,stroke-width:2px
+    style Q2 fill:#ffcccc,stroke:#333,stroke-width:2px
+  </pre></div>
+
+<h4 id="交换机-Exchanges"><a href="#交换机-Exchanges" class="headerlink" title="交换机 (Exchanges)"></a>交换机 (Exchanges)</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span><span class="string">.</span> <span class="string">seckill.topic</span> <span class="string">(业务交换机)</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">类型:</span> <span class="string">Topic</span> <span class="string">Exchange</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">持久化:</span> <span class="literal">true</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">作用:</span> <span class="string">接收秒杀订单消息并路由至业务队列</span></span><br><span class="line"></span><br><span class="line"><span class="number">2</span><span class="string">.</span> <span class="string">seckill.dlx.topic</span> <span class="string">(死信交换机)</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">类型:</span> <span class="string">Topic</span> <span class="string">Exchange</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">持久化:</span> <span class="literal">true</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">作用:</span> <span class="string">接收处理失败的消息</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="队列-Queues"><a href="#队列-Queues" class="headerlink" title="队列 (Queues)"></a>队列 (Queues)</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span><span class="string">.</span> <span class="string">seckill.order.queue</span> <span class="string">(业务队列)</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">持久化:</span> <span class="literal">true</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">死信交换机:</span> <span class="string">seckill.dlx.topic</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">死信路由键:</span> <span class="string">seckill.dlx</span></span><br><span class="line">   <span class="bullet">-</span> <span class="attr">TTL:</span> <span class="string">30000ms</span> <span class="string">(消息过期进死信)</span></span><br><span class="line">   <span class="bullet">-</span> <span class="attr">Max Length:</span> <span class="number">10000</span> <span class="string">(队列最大容量)</span></span><br><span class="line"></span><br><span class="line"><span class="number">2</span><span class="string">.</span> <span class="string">seckill.dlx.queue</span> <span class="string">(死信队列)</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">持久化:</span> <span class="literal">true</span></span><br><span class="line">   <span class="bullet">-</span> <span class="string">作用:</span> <span class="string">存储重试耗尽或过期的消息，等待人工介入</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>消息进入死信队列的条件</strong>：</p>
+<ul>
+<li>消息在队列中存放过长时间</li>
+<li>消息队列中消息数量已达上限</li>
+<li>消息被消费者拒绝（nack）</li>
+</ul>
+<h4 id="路由绑定-Bindings"><a href="#路由绑定-Bindings" class="headerlink" title="路由绑定 (Bindings)"></a>路由绑定 (Bindings)</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span><span class="string">.</span> <span class="string">seckill.topic</span> <span class="string">--[routing_key:</span> <span class="string">seckill.order]--&gt;</span> <span class="string">seckill.order.queue</span></span><br><span class="line"><span class="number">2</span><span class="string">.</span> <span class="string">seckill.dlx.topic</span> <span class="string">--[routing_key:</span> <span class="string">seckill.dlx]--&gt;</span> <span class="string">seckill.dlx.queue</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>为什么会需要路由？为什么不能直接指定队列？这个路由的作用对象有哪些？<ul>
+<li>主要是考虑生产者端与队列端的解耦，一条消息不一定是发给某个队列，而是可以发送给多个符合路由规则的队列。</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-3-RabbitMQ-配置参数说明"><a href="#2-3-RabbitMQ-配置参数说明" class="headerlink" title="2.3 RabbitMQ 配置参数说明"></a>2.3 RabbitMQ 配置参数说明</h3><h4 id="配置文件-application-yaml"><a href="#配置文件-application-yaml" class="headerlink" title="配置文件 (application.yaml)"></a>配置文件 (application.yaml)</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">rabbitmq:</span></span><br><span class="line">    <span class="attr">host:</span> <span class="string">$&#123;RABBITMQ_HOST:127.0.0.1&#125;</span>         <span class="comment"># RabbitMQ 服务器地址</span></span><br><span class="line">    <span class="attr">port:</span> <span class="string">$&#123;RABBITMQ_PORT:5672&#125;</span>              <span class="comment"># AMQP 协议端口</span></span><br><span class="line">    <span class="attr">username:</span> <span class="string">$&#123;RABBITMQ_USERNAME:guest&#125;</span>     <span class="comment"># 连接用户名</span></span><br><span class="line">    <span class="attr">password:</span> <span class="string">$&#123;RABBITMQ_PASSWORD:guest&#125;</span>     <span class="comment"># 连接密码</span></span><br><span class="line">    <span class="attr">virtual-host:</span> <span class="string">$&#123;RABBITMQ_VHOST:/&#125;</span>        <span class="comment"># 虚拟主机（命名空间隔离）</span></span><br><span class="line">    <span class="attr">publisher-confirm-type:</span> <span class="string">correlated</span>       <span class="comment"># 生产者发送确认（异步回调）</span></span><br><span class="line">    <span class="attr">publisher-returns:</span> <span class="literal">true</span>                  <span class="comment"># 启用消息返回通知</span></span><br><span class="line">    <span class="attr">template:</span></span><br><span class="line">      <span class="attr">mandatory:</span> <span class="literal">true</span>                        <span class="comment"># 消息路由失败时触发 return 回调</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>参数说明</strong>：</p>
+<ul>
+<li><code>acknowledge-mode: manual</code>：消费者必须显式调用 <code>basicAck/basicNack</code>，防止消息处理失败但被自动确认</li>
+<li><code>publisher-confirm-type: correlated</code>：生产者可通过回调确认 Broker 是否成功接收消息</li>
+<li><code>mandatory: true</code>：若消息无法路由到任何队列，触发 <code>ReturnCallback</code>（用于发现配置错误）</li>
+</ul>
+<h4 id="线程池配置-RabbitMQConfig-java"><a href="#线程池配置-RabbitMQConfig-java" class="headerlink" title="线程池配置 (RabbitMQConfig.java)"></a>线程池配置 (RabbitMQConfig.java)</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="keyword">public</span> ThreadPoolTaskExecutor <span class="title function_">rabbitVoucherListenerExecutor</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">ThreadPoolTaskExecutor</span> <span class="variable">executor</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ThreadPoolTaskExecutor</span>();</span><br><span class="line">    executor.setCorePoolSize(<span class="number">24</span>);           <span class="comment">// 核心线程数 = 逻辑核心数 × 1.5</span></span><br><span class="line">    executor.setMaxPoolSize(<span class="number">48</span>);            <span class="comment">// 最大线程数 = 核心数 × 2</span></span><br><span class="line">    executor.setQueueCapacity(<span class="number">0</span>);         <span class="comment">// 任务队列容量（削峰）</span></span><br><span class="line">    executor.setKeepAliveSeconds(<span class="number">60</span>);       <span class="comment">// 空闲线程存活时间</span></span><br><span class="line">    executor.setThreadNamePrefix(<span class="string">&quot;voucher-mq-&quot;</span>);</span><br><span class="line"><span class="comment">/*    executor.setRejectedExecutionHandler(</span></span><br><span class="line"><span class="comment">        new ThreadPoolExecutor.CallerRunsPolicy()  // 拒绝策略：调用者线程执行</span></span><br><span class="line"><span class="comment">    );</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line">    executor.setWaitForTasksToCompleteOnShutdown(<span class="literal">true</span>);  <span class="comment">// 优雅关闭</span></span><br><span class="line">    executor.setAwaitTerminationSeconds(<span class="number">60</span>);</span><br><span class="line">    <span class="keyword">return</span> executor;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><strong>消费者线程和提交任务的线程之间的区别</strong></p>
+<ul>
+<li>消费者线程的职责：负责从队列中拉取消息然后处理消息（循环，这里的拉取消息与循环逻辑是容器生成的）</li>
+<li>提交任务线程的职责：提交任务线程是容器的管理线程，提交的任务是处理消息的循环。</li>
+<li>一开始我以为提交的任务是一个消息，但是<strong>实际上拉取消息和执行业务操作都是由消费者线程完成的</strong>。</li>
+</ul>
+</li>
+<li><p><strong>拒绝策略的选择</strong></p>
+<ul>
+<li>一开始选择的是由提交任务的线程执行，这绝对是不可容忍的，因为容器监视线程如果被长期占用将会妨碍其他的重要任务的执行。</li>
+<li>所以这里选择的是默认的拒绝策略（<code>AbortPolicy</code>）–直接抛异常。</li>
+</ul>
+</li>
+<li><p><strong>队列容量为什么设置成0？</strong></p>
+<ul>
+<li>这样一旦核心满了，新任务因为无法入队，线程池就会<strong>立即创建新线程去执行（直到达到 maxPoolSize）</strong>。</li>
+</ul>
+</li>
+<li><p><strong>优雅关闭的含义</strong></p>
+<ul>
+<li>这里的意思是在应用主线程关闭时，先等待所有的消费者处理消息完毕之后才会</li>
+</ul>
+</li>
+<li><p><strong>启动时的逻辑是什么？</strong></p>
+<ul>
+<li><pre><code class="java">    // 源码概念伪代码
+    int consumersToStart = this.concurrentConsumers; // 24
+    for (int i = 0; i &lt; consumersToStart; i++) &#123;
+        // 创建一个AsyncMessageProcessingConsumer对象
+        // 提交给 TaskExecutor (你的线程池)
+        this.taskExecutor.execute(new AsyncMessageProcessingConsumer(blockerConsumer));
+    &#125;
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">​		</span><br><span class="line"></span><br><span class="line">​		**在启动的时候就创建了核心线程数的消费者。**	</span><br><span class="line"></span><br><span class="line">* **扩容的逻辑是什么？**</span><br><span class="line">  * 当线程数已经&gt;=核心线程数并且消息队列中的有堆积消息时会直接创建非核心线程（队列容量为0）。</span><br><span class="line"></span><br><span class="line">* **既然这里的任务都是死循环，那么当并发高峰消失的时候仍然存在怎么办？**</span><br><span class="line">  * spring实现了在拉取消息的时候若多次失败则跳出while循环的逻辑。这样线程就会变空闲，非核心线程在空闲时间超过**KeepAliveSeconds**就会被回收。</span><br><span class="line"></span><br><span class="line">**设计依据**：</span><br><span class="line"></span><br><span class="line">- 核心线程数 24：假设 16 核 CPU × 1.5 倍（IO 密集型应用经验值）</span><br><span class="line">- 拒绝策略 `CallerRunsPolicy`：高峰期队列满时，由 RabbitMQ 的消费线程直接执行，实现天然降级</span><br><span class="line"></span><br><span class="line">#### 监听容器工厂配置</span><br><span class="line"></span><br><span class="line">```java</span><br><span class="line">@Bean</span><br><span class="line">public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(</span><br><span class="line">        ConnectionFactory connectionFactory,</span><br><span class="line">        TaskExecutor taskExecutor,</span><br><span class="line">        MessageConverter messageConverter) &#123;</span><br><span class="line">    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();</span><br><span class="line">    factory.setConnectionFactory(connectionFactory);</span><br><span class="line">    factory.setTaskExecutor(taskExecutor);           // 注入自定义线程池</span><br><span class="line">    factory.setConcurrentConsumers(24);              // 覆盖 YAML 配置</span><br><span class="line">    factory.setMaxConcurrentConsumers(48);</span><br><span class="line">    factory.setPrefetchCount(5);                     // 每个消费者预取 5 条消息</span><br><span class="line">    factory.setAcknowledgeMode(AcknowledgeMode.MANUAL);</span><br><span class="line">    factory.setMessageConverter(messageConverter);   // JSON 序列化</span><br><span class="line">    factory.setDefaultRequeueRejected(false);        // NACK 时不重新入队（进死信）</span><br><span class="line">    return factory;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<p>我一开始以为只需要配置一个线程池就行了，但是还需要有一个消费者相关的元数据的配置工厂，这个类主要是负责规范消费者的一些行为特性。</p>
+<p><strong>关键参数</strong>：</p>
+<ul>
+<li><code>concurrentConsumers: 24</code>：启动时立即创建 24 个消费者线程</li>
+<li><code>prefetchCount: 5</code>：每个消费者从队列预取 5 条消息，提升吞吐但避免消息倾斜</li>
+<li><code>defaultRequeueRejected: false</code>：<code>basicNack</code> 时不回队列，直接进死信（避免死循环重试）</li>
+</ul>
+<hr>
+<h2 id="三、代码实现细节"><a href="#三、代码实现细节" class="headerlink" title="三、代码实现细节"></a>三、代码实现细节</h2><h3 id="3-1-模块清单"><a href="#3-1-模块清单" class="headerlink" title="3.1 模块清单"></a>3.1 模块清单</h3><h4 id="新增模块"><a href="#新增模块" class="headerlink" title="新增模块"></a>新增模块</h4><ol>
+<li><p><strong>MQ 配置类</strong> (<code>com.hmdp.config.RabbitMQConfig</code>)</p>
+<ul>
+<li>拓扑结构声明（Exchange&#x2F;Queue&#x2F;Binding）</li>
+<li>线程池与监听容器工厂配置</li>
+<li>JSON 消息转换器</li>
+</ul>
+</li>
+<li><p><strong>消息 DTO</strong> (<code>com.hmdp.dto.VoucherOrderMessage</code>)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="meta">@NoArgsConstructor</span></span><br><span class="line"><span class="meta">@AllArgsConstructor</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">VoucherOrderMessage</span> <span class="keyword">implements</span> <span class="title class_">Serializable</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> Long id;         <span class="comment">// 订单 ID</span></span><br><span class="line">    <span class="keyword">private</span> Long userId;     <span class="comment">// 用户 ID</span></span><br><span class="line">    <span class="keyword">private</span> Long voucherId;  <span class="comment">// 优惠券 ID</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>消费者模块</strong> (<code>com.hmdp.mq.VoucherOrderConsumer</code>)</p>
+<ul>
+<li><code>@RabbitListener</code> 监听队列</li>
+<li>分布式锁 + 事务落库</li>
+<li>手动 ACK&#x2F;重试&#x2F;死信处理</li>
+</ul>
+</li>
+</ol>
+<h4 id="改造模块"><a href="#改造模块" class="headerlink" title="改造模块"></a>改造模块</h4><ol>
+<li><p><strong>生产者服务</strong> (<code>VoucherOrderServiceImpl.buySeckillVoucher</code>)</p>
+<ul>
+<li>移除 Redis Stream 轮询消费逻辑</li>
+<li>新增 <code>RabbitTemplate.convertAndSend()</code> 发送消息</li>
+</ul>
+</li>
+<li><p><strong>Lua 脚本</strong> (<code>SeckillVoucherOrder.lua</code>)</p>
+<ul>
+<li>移除 <code>redis.call(&#39;xadd&#39;, &#39;stream.order&#39;, ...)</code> 逻辑</li>
+<li>职责收敛为：库存校验 + 扣减 + 一人一单判重</li>
+</ul>
+</li>
+</ol>
+<h3 id="3-2-调用时序图"><a href="#3-2-调用时序图" class="headerlink" title="3.2 调用时序图"></a>3.2 调用时序图</h3><h4 id="正常成功链路"><a href="#正常成功链路" class="headerlink" title="正常成功链路"></a>正常成功链路</h4><div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    sequenceDiagram
+    autonumber
+    actor Client as 客户端
+    participant Service as VoucherOrderService
+    participant Redis as Redis
+    participant Lua as Lua脚本
+    participant MQ as RabbitMQ&lt;br&#x2F;&gt;seckill.topic
+    participant Queue as seckill.order.queue
+    participant Consumer as VoucherOrderConsumer&lt;br&#x2F;&gt;(24-48线程)
+    participant DB as MySQL
+
+    Client-&gt;&gt;Service: buySeckillVoucher(voucherId)
+    Service-&gt;&gt;Redis: GET seckill:stock:{voucherId}
+    Redis--&gt;&gt;Service: 活动信息
+    Service-&gt;&gt;Lua: EVAL(voucherId, userId, orderId)
+    Lua-&gt;&gt;Redis: 原子操作:&lt;br&#x2F;&gt;校验库存+判重+扣减+记录
+    Redis--&gt;&gt;Lua: 操作成功
+    Lua--&gt;&gt;Service: return 0
+    
+    alt Lua校验成功
+        Service-&gt;&gt;MQ: convertAndSend(message)
+        MQ-&gt;&gt;Queue: 路由到业务队列
+        Service--&gt;&gt;Client: Result.ok(orderId)
+    else Lua校验失败
+        Service--&gt;&gt;Client: Result.fail(库存不足&#x2F;重复下单)
+    end
+    
+    Queue-&gt;&gt;Consumer: 并发推送消息(prefetch&#x3D;5)
+    Consumer-&gt;&gt;Consumer: tryLock(lock:order:{userId})
+    Consumer-&gt;&gt;DB: 事务:&lt;br&#x2F;&gt;update stock + insert order
+    DB--&gt;&gt;Consumer: 成功
+    Consumer-&gt;&gt;Queue: basicAck(deliveryTag)
+  </pre></div>
+
+<h4 id="消费失败重试链路"><a href="#消费失败重试链路" class="headerlink" title="消费失败重试链路"></a>消费失败重试链路</h4><div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    sequenceDiagram
+    autonumber
+    participant Queue as seckill.order.queue
+    participant Consumer as VoucherOrderConsumer
+    participant MQ as seckill.topic
+    participant DLX as seckill.dlx.topic
+    participant DLQ as seckill.dlx.queue
+
+    Queue-&gt;&gt;Consumer: 投递消息(x-retry-count&#x3D;n)
+    Consumer-&gt;&gt;Consumer: processOrder() 抛出异常
+    
+    alt 重试次数 &lt; 3
+        Consumer-&gt;&gt;MQ: 重新发送消息&lt;br&#x2F;&gt;(x-retry-count&#x3D;n+1)
+        Consumer-&gt;&gt;Queue: basicAck(原消息)
+        Note over Consumer,Queue: 业务层重试策略
+    else 重试次数 &gt;&#x3D; 3
+        Consumer-&gt;&gt;Queue: basicNack(deliveryTag, requeue&#x3D;false)
+        Queue-&gt;&gt;DLX: 死信路由(rk&#x3D;seckill.dlx)
+        DLX-&gt;&gt;DLQ: 进入死信队列
+        Note over DLQ: 等待人工处理&#x2F;告警
+    end
+  </pre></div>
+
+<h4 id="完整流程（包含异常分支）"><a href="#完整流程（包含异常分支）" class="headerlink" title="完整流程（包含异常分支）"></a>完整流程（包含异常分支）</h4><div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    sequenceDiagram
+    autonumber
+    actor Client
+    participant Service as VoucherOrderService
+    participant Redis
+    participant MQ as RabbitMQ
+    participant Consumer as VoucherOrderConsumer
+    participant DB as MySQL
+    participant DLQ as 死信队列
+
+    Client-&gt;&gt;Service: 秒杀请求
+    Service-&gt;&gt;Redis: Lua脚本校验+扣减
+    
+    alt Redis校验失败
+        Redis--&gt;&gt;Service: res&#x3D;1&#x2F;2
+        Service--&gt;&gt;Client: 返回失败
+    else Redis校验成功
+        Redis--&gt;&gt;Service: res&#x3D;0
+        Service-&gt;&gt;MQ: 发送消息
+        Service--&gt;&gt;Client: 返回orderId
+        
+        MQ-&gt;&gt;Consumer: 推送消息
+        
+        alt 消费成功
+            Consumer-&gt;&gt;DB: 落库
+            Consumer-&gt;&gt;MQ: ACK
+        else 消费失败(可重试)
+            Consumer-&gt;&gt;MQ: 重发消息(retry++)
+            Consumer-&gt;&gt;MQ: ACK原消息
+        else 消费失败(重试耗尽)
+            Consumer-&gt;&gt;MQ: NACK(requeue&#x3D;false)
+            MQ-&gt;&gt;DLQ: 进入死信队列
+        end
+    end
+  </pre></div>
+
+<h3 id="3-3-关键代码片段"><a href="#3-3-关键代码片段" class="headerlink" title="3.3 关键代码片段"></a>3.3 关键代码片段</h3><h4 id="生产者发送消息"><a href="#生产者发送消息" class="headerlink" title="生产者发送消息"></a>生产者发送消息</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// VoucherOrderServiceImpl.java</span></span><br><span class="line"><span class="type">Long</span> <span class="variable">res</span> <span class="operator">=</span> stringRedisTemplate.execute(</span><br><span class="line">    SECKILL_VOUCHER_ORDER,</span><br><span class="line">    Collections.emptyList(),</span><br><span class="line">    voucherId.toString(),</span><br><span class="line">    userId.toString(),</span><br><span class="line">    String.valueOf(orderId)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (res.intValue() != <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> Result.fail(res.intValue() == <span class="number">1</span> ? <span class="string">&quot;库存不足!&quot;</span> : <span class="string">&quot;请勿重复下单！&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 校验通过后才发送 MQ</span></span><br><span class="line"><span class="type">VoucherOrderMessage</span> <span class="variable">message</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">VoucherOrderMessage</span>(orderId, userId, voucherId);</span><br><span class="line">rabbitTemplate.convertAndSend(</span><br><span class="line">    RabbitMQConfig.SECKILL_EXCHANGE,</span><br><span class="line">    RabbitMQConfig.SECKILL_ORDER_ROUTING_KEY,</span><br><span class="line">    message</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>注意这里并没有考虑发送消息失败（网络抖动或者消息路由失败等原因）的场景</strong></p>
+<p>这里没有考虑路由失败的情形</p>
+<p><strong>解决方案</strong>：<strong>重试加对账兜底。</strong>对redis端的存储的订单数据设置合理的过期时间（如活动过期后的一天），在流量谷时启动定时对账的任务，看redis的order在MySQL中是否有对应的记录，没有的话就进行补偿。</p>
+<p>当然肯定会有些没有考虑到的边界情况，这个之后再说。</p>
+<h4 id="消费者监听与-ACK"><a href="#消费者监听与-ACK" class="headerlink" title="消费者监听与 ACK"></a>消费者监听与 ACK</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// VoucherOrderConsumer.java</span></span><br><span class="line"><span class="meta">@RabbitListener(queues = RabbitMQConfig.SECKILL_ORDER_QUEUE, </span></span><br><span class="line"><span class="meta">                containerFactory = &quot;rabbitListenerContainerFactory&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">handleVoucherOrder</span><span class="params">(</span></span><br><span class="line"><span class="params">    VoucherOrderMessage orderMessage,</span></span><br><span class="line"><span class="params">    Message message,</span></span><br><span class="line"><span class="params">    Channel channel</span></span><br><span class="line"><span class="params">)</span> &#123;</span><br><span class="line">    <span class="type">long</span> <span class="variable">deliveryTag</span> <span class="operator">=</span> message.getMessageProperties().getDeliveryTag();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        processOrder(orderMessage);  <span class="comment">// 业务处理</span></span><br><span class="line">        channel.basicAck(deliveryTag, <span class="literal">false</span>);  <span class="comment">// 手动确认</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        handleFailure(channel, deliveryTag, message);  <span class="comment">// 重试或死信</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="处理业务逻辑"><a href="#处理业务逻辑" class="headerlink" title="处理业务逻辑"></a>处理业务逻辑</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">processOrder</span><span class="params">(VoucherOrderMessage orderMessage)</span> &#123;</span><br><span class="line">        <span class="type">VoucherOrder</span> <span class="variable">voucherOrder</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">VoucherOrder</span>();</span><br><span class="line">        voucherOrder.setId(orderMessage.getId());</span><br><span class="line">        voucherOrder.setUserId(orderMessage.getUserId());</span><br><span class="line">        voucherOrder.setVoucherId(orderMessage.getVoucherId());</span><br><span class="line">        </span><br><span class="line">        <span class="type">RLock</span> <span class="variable">rLock</span> <span class="operator">=</span> redissonClient.getLock(<span class="string">&quot;lock:order:&quot;</span> + orderMessage.getUserId());</span><br><span class="line">        <span class="type">boolean</span> <span class="variable">isLocked</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            isLocked = rLock.tryLock(<span class="number">3</span>, <span class="number">10</span>, TimeUnit.SECONDS);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(e);</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> (!isLocked) &#123;</span><br><span class="line">            log.warn(<span class="string">&quot;获取锁失败，用户: &#123;&#125;&quot;</span>, orderMessage.getUserId());</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RuntimeException</span>(<span class="string">&quot;获取锁失败&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            voucherOrderService.createOrder(voucherOrder);</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (rLock.isHeldByCurrentThread()) &#123;</span><br><span class="line">                rLock.unlock();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@Transactional</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createOrder</span><span class="params">(VoucherOrder voucherOrder)</span> &#123;</span><br><span class="line">        <span class="comment">// 扣减库存</span></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">success</span> <span class="operator">=</span> seckillVoucherService.update()</span><br><span class="line">                .setSql(<span class="string">&quot;stock=stock-1&quot;</span>)</span><br><span class="line">                .eq(<span class="string">&quot;voucher_id&quot;</span>, voucherOrder.getVoucherId())</span><br><span class="line">                .gt(<span class="string">&quot;stock&quot;</span>, <span class="number">0</span>)</span><br><span class="line">                .update();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!success) &#123;</span><br><span class="line">            log.error(<span class="string">&quot;优惠券库存不足!&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 保存订单</span></span><br><span class="line">        save(voucherOrder);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里就是复用原逻辑。</p>
+<p>值得一提的是这里的幂等性是通过<code>createOrder</code>中的唯一索引加上事务保证的。但是由于数据库的回滚的成本很高，所以在应用层面还是有必要提前加一层幂等性判断的。</p>
+<p>可以使用redis来进行幂等判断，就是看这个消息是否被处理过，被处理过就放入<code>mq:processed:&#123;messageId&#125;</code>中。</p>
+<h2 id="四、性能与风险评估"><a href="#四、性能与风险评估" class="headerlink" title="四、性能与风险评估"></a>四、性能与风险评估</h2><h3 id="4-1-风险与对策"><a href="#4-1-风险与对策" class="headerlink" title="4.1 风险与对策"></a>4.1 风险与对策</h3><h4 id="风险一：最终一致性窗口期（少卖）"><a href="#风险一：最终一致性窗口期（少卖）" class="headerlink" title="风险一：最终一致性窗口期（少卖）"></a>风险一：最终一致性窗口期（少卖）</h4><ul>
+<li><strong>风险描述</strong>：Redis 扣减成功，但 MQ 发送失败（网络故障&#x2F;进程崩溃）</li>
+<li><strong>概率</strong>：极低（&lt; 0.01%）</li>
+<li><strong>对策</strong>：<ul>
+<li>依赖 <code>publisher-confirm</code> 机制捕获发送失败</li>
+<li>可选：引入本地消息表&#x2F;Outbox 模式保证最终投递</li>
+<li>业务兜底：定时对账任务（Redis 已购用户 vs MySQL 订单表）</li>
+</ul>
+</li>
+</ul>
+<h4 id="风险二：重复消费（需幂等）"><a href="#风险二：重复消费（需幂等）" class="headerlink" title="风险二：重复消费（需幂等）"></a>风险二：重复消费（需幂等）</h4><ul>
+<li><strong>风险描述</strong>：消费者处理成功但 ACK 失败，消息重新投递</li>
+<li><strong>对策</strong>：<ul>
+<li>数据库层面：对 <code>order_id</code> 加唯一索引</li>
+<li>应用层面：在 <code>createOrder</code> 前查询订单是否已存在</li>
+</ul>
+</li>
+</ul>
+<h4 id="风险三：死信队列堆积"><a href="#风险三：死信队列堆积" class="headerlink" title="风险三：死信队列堆积"></a>风险三：死信队列堆积</h4><ul>
+<li><strong>风险描述</strong>：大量异常消息进入 DLQ 无人处理</li>
+<li><strong>对策</strong>：<ul>
+<li>监控告警：队列深度超过阈值触发钉钉&#x2F;邮件通知</li>
+<li>运维流程：定期巡检 DLQ，记录异常原因并修复</li>
+</ul>
+</li>
+</ul>
+<hr>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://Zane-Woo.github.io">Zane Woo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://zane-woo.github.io/2026/01/18/%E7%82%B9%E8%AF%84%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96/">https://zane-woo.github.io/2026/01/18/%E7%82%B9%E8%AF%84%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-share"><div class="social-share" data-image="/img/img2.webp" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/01/17/%E6%89%8B%E5%86%99spring-day13/" title="手写spring-day13"><img class="cover" src="/img/img4.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post" loading='lazy'><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">手写spring-day13</div></div><div class="info-2"><div class="info-item-1">结合注解实现给定路径自动扫描注册Bean，并实现相关的注解的字段属性配置，实现为代理对象注入属性值</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Zane Woo</div><div class="author-info-description">在路上</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">29</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">15</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Zane-Woo"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Zane-Woo" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:wuz33631@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="https://space.bilibili.com/3546378057812838" target="_blank" title="Bilibili"><i class="fab fa-bilibili" style="color: #00A1D6;"></i></a><a class="social-icon" href="https://steamcommunity.com/id/76561199534301889" target="_blank" title="Steam"><i class="fab fa-steam" style="color: #000000;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Hi!🙂 I`m Zane. <br>🎉 感谢访问我的个人博客<br>💡 欢迎留言交流</div></div><div class="card-widget card-post-heatmap"><div class="card-content"><div class="item-headline"><i class="fas fa-calendar-alt"></i><span>Recent Commits</span></div><div class="post-heatmap"><div class="post-heatmap__grid"><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0" title="2025-09-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-29：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-09-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-18：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-19：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-20：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-21：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-29：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-10-31：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-18：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-19：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-20：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-21：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-29：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-11-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-05：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-06：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-07：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-09：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-10：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-11：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-12：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-13：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-18：0 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-19：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-20：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-21：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-22：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-23：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-24：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-25：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-26：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-27：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-28：0 篇"></span><span class="post-heatmap__day lv-2" title="2025-12-29：2 篇"></span><span class="post-heatmap__day lv-2" title="2025-12-30：2 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-31：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-01：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-02：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-03：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-08：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-09：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-10：0 篇"></span><span class="post-heatmap__day lv-2" title="2026-01-11：2 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-12：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-16：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-17：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-18：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-19：0 篇"></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span></div><div class="post-heatmap__legend"><span>少</span><span class="post-heatmap__legend-scale" title="发文数强度"><i class="lv-0"></i><i class="lv-1"></i><i class="lv-2"></i><i class="lv-3"></i><i class="lv-4"></i></span><span>多</span></div></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%98%E6%9B%B4%E6%A6%82%E8%BF%B0-Change-Summary"><span class="toc-number">1.</span> <span class="toc-text">变更概述 (Change Summary)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E8%83%8C%E6%99%AF%E4%B8%8E%E5%86%B3%E7%AD%96%E4%BE%9D%E6%8D%AE"><span class="toc-number">2.</span> <span class="toc-text">一、技术选型背景与决策依据</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-%E5%8E%9F%E6%9E%B6%E6%9E%84%E7%93%B6%E9%A2%88%E5%88%86%E6%9E%90"><span class="toc-number">2.1.</span> <span class="toc-text">1.1 原架构瓶颈分析</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Redis-Stream-%E6%96%B9%E6%A1%88%E7%9A%84%E5%B1%80%E9%99%90%E6%80%A7"><span class="toc-number">2.1.1.</span> <span class="toc-text">Redis Stream 方案的局限性</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B8%E5%9E%8B%E6%80%A7%E8%83%BD%E7%93%B6%E9%A2%88%E5%9C%BA%E6%99%AF"><span class="toc-number">2.1.2.</span> <span class="toc-text">典型性能瓶颈场景</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-RabbitMQ-%E6%96%B9%E6%A1%88%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="toc-number">2.2.</span> <span class="toc-text">1.2 RabbitMQ 方案的优势</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E5%86%B3%E7%AD%96"><span class="toc-number">2.3.</span> <span class="toc-text">1.3 技术选型决策</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%8F%98%E6%9B%B4"><span class="toc-number">3.</span> <span class="toc-text">二、系统架构变更</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84%E5%AF%B9%E6%AF%94"><span class="toc-number">3.1.</span> <span class="toc-text">2.1 整体架构对比</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%97%A7%E6%9E%B6%E6%9E%84%EF%BC%88Redis-Stream%EF%BC%89"><span class="toc-number">3.1.1.</span> <span class="toc-text">旧架构（Redis Stream）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%B0%E6%9E%B6%E6%9E%84%EF%BC%88RabbitMQ%EF%BC%89"><span class="toc-number">3.1.2.</span> <span class="toc-text">新架构（RabbitMQ）</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-RabbitMQ-%E6%8B%93%E6%89%91%E7%BB%93%E6%9E%84%E8%AE%BE%E8%AE%A1"><span class="toc-number">3.2.</span> <span class="toc-text">2.2 RabbitMQ 拓扑结构设计</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BA%A4%E6%8D%A2%E6%9C%BA-Exchanges"><span class="toc-number">3.2.1.</span> <span class="toc-text">交换机 (Exchanges)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%98%9F%E5%88%97-Queues"><span class="toc-number">3.2.2.</span> <span class="toc-text">队列 (Queues)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B7%AF%E7%94%B1%E7%BB%91%E5%AE%9A-Bindings"><span class="toc-number">3.2.3.</span> <span class="toc-text">路由绑定 (Bindings)</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-RabbitMQ-%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="toc-number">3.3.</span> <span class="toc-text">2.3 RabbitMQ 配置参数说明</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6-application-yaml"><span class="toc-number">3.3.1.</span> <span class="toc-text">配置文件 (application.yaml)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BA%BF%E7%A8%8B%E6%B1%A0%E9%85%8D%E7%BD%AE-RabbitMQConfig-java"><span class="toc-number">3.3.2.</span> <span class="toc-text">线程池配置 (RabbitMQConfig.java)</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82"><span class="toc-number">4.</span> <span class="toc-text">三、代码实现细节</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E6%A8%A1%E5%9D%97%E6%B8%85%E5%8D%95"><span class="toc-number">4.1.</span> <span class="toc-text">3.1 模块清单</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%B0%E5%A2%9E%E6%A8%A1%E5%9D%97"><span class="toc-number">4.1.1.</span> <span class="toc-text">新增模块</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%94%B9%E9%80%A0%E6%A8%A1%E5%9D%97"><span class="toc-number">4.1.2.</span> <span class="toc-text">改造模块</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-%E8%B0%83%E7%94%A8%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">4.2.</span> <span class="toc-text">3.2 调用时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A3%E5%B8%B8%E6%88%90%E5%8A%9F%E9%93%BE%E8%B7%AF"><span class="toc-number">4.2.1.</span> <span class="toc-text">正常成功链路</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B6%88%E8%B4%B9%E5%A4%B1%E8%B4%A5%E9%87%8D%E8%AF%95%E9%93%BE%E8%B7%AF"><span class="toc-number">4.2.2.</span> <span class="toc-text">消费失败重试链路</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%EF%BC%88%E5%8C%85%E5%90%AB%E5%BC%82%E5%B8%B8%E5%88%86%E6%94%AF%EF%BC%89"><span class="toc-number">4.2.3.</span> <span class="toc-text">完整流程（包含异常分支）</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-%E5%85%B3%E9%94%AE%E4%BB%A3%E7%A0%81%E7%89%87%E6%AE%B5"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 关键代码片段</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%94%9F%E4%BA%A7%E8%80%85%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AF"><span class="toc-number">4.3.1.</span> <span class="toc-text">生产者发送消息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B6%88%E8%B4%B9%E8%80%85%E7%9B%91%E5%90%AC%E4%B8%8E-ACK"><span class="toc-number">4.3.2.</span> <span class="toc-text">消费者监听与 ACK</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%84%E7%90%86%E4%B8%9A%E5%8A%A1%E9%80%BB%E8%BE%91"><span class="toc-number">4.3.3.</span> <span class="toc-text">处理业务逻辑</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E6%80%A7%E8%83%BD%E4%B8%8E%E9%A3%8E%E9%99%A9%E8%AF%84%E4%BC%B0"><span class="toc-number">5.</span> <span class="toc-text">四、性能与风险评估</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-%E9%A3%8E%E9%99%A9%E4%B8%8E%E5%AF%B9%E7%AD%96"><span class="toc-number">5.1.</span> <span class="toc-text">4.1 风险与对策</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%A3%8E%E9%99%A9%E4%B8%80%EF%BC%9A%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4%E6%80%A7%E7%AA%97%E5%8F%A3%E6%9C%9F%EF%BC%88%E5%B0%91%E5%8D%96%EF%BC%89"><span class="toc-number">5.1.1.</span> <span class="toc-text">风险一：最终一致性窗口期（少卖）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%A3%8E%E9%99%A9%E4%BA%8C%EF%BC%9A%E9%87%8D%E5%A4%8D%E6%B6%88%E8%B4%B9%EF%BC%88%E9%9C%80%E5%B9%82%E7%AD%89%EF%BC%89"><span class="toc-number">5.1.2.</span> <span class="toc-text">风险二：重复消费（需幂等）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%A3%8E%E9%99%A9%E4%B8%89%EF%BC%9A%E6%AD%BB%E4%BF%A1%E9%98%9F%E5%88%97%E5%A0%86%E7%A7%AF"><span class="toc-number">5.1.3.</span> <span class="toc-text">风险三：死信队列堆积</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/18/%E7%82%B9%E8%AF%84%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96/" title="点评项目优化-消息队列"><img src="/img/img2.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="点评项目优化-消息队列"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/18/%E7%82%B9%E8%AF%84%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96/" title="点评项目优化-消息队列">点评项目优化-消息队列</a><time datetime="2026-01-18T15:11:33.000Z" title="Created 2026-01-18 23:11:33">2026-01-18</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/17/%E6%89%8B%E5%86%99spring-day13/" title="手写spring-day13"><img src="/img/img4.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day13"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/17/%E6%89%8B%E5%86%99spring-day13/" title="手写spring-day13">手写spring-day13</a><time datetime="2026-01-17T04:47:57.000Z" title="Created 2026-01-17 12:47:57">2026-01-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/12/%E6%89%8B%E5%86%99spring-day12/" title="手写spring-day12"><img src="/img/img0.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day12"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/12/%E6%89%8B%E5%86%99spring-day12/" title="手写spring-day12">手写spring-day12</a><time datetime="2026-01-12T03:36:25.000Z" title="Created 2026-01-12 11:36:25">2026-01-12</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/HashMap%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/" title="HashMap源码学习"><img src="/img/img3.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HashMap源码学习"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/11/HashMap%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/" title="HashMap源码学习">HashMap源码学习</a><time datetime="2026-01-11T13:52:49.000Z" title="Created 2026-01-11 21:52:49">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/%E6%89%8B%E5%86%99spring-day11/" title="手写spring-day11"><img src="/img/img1.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="手写spring-day11"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/01/11/%E6%89%8B%E5%86%99spring-day11/" title="手写spring-day11">手写spring-day11</a><time datetime="2026-01-11T04:41:08.000Z" title="Created 2026-01-11 12:41:08">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/img4.webp);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Zane Woo</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'Zane-Woo/Zane-Woo.github.io',
+      'data-repo-id': 'R_kgDOQkAk7Q',
+      'data-category-id': 'DIC_kwDOQkAk7c4Czfzm',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !true) {
+    if (true) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><script src="/js/mermaid-zoom.js"></script><script src="/js/post-heatmap-snake.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="99" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/canvas-nest.min.js"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-heart.min.js" async="async" mobile="false"></script><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-show-text.min.js" data-mobile="false" data-text="luck++,芝士++,喵,喵喵,喵喵喵" data-fontsize="15px" data-random="true" async="async"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["meta[property=\"og:image\"]","meta[property=\"og:title\"]","meta[property=\"og:url\"]","meta[property=\"og:description\"]","link[rel=\"canonical\"]","head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      false
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script>(() => {
+  const option = null
+  const config = {"site_uv":true,"site_pv":true,"page_pv":true,"token":"api_ouaZQLvYMLpqt6M5rtMs1VUlqKlcHLnX"}
+
+  const runTrack = () => {
+    if (typeof umami !== 'undefined' && typeof umami.track === 'function') {
+      umami.track(props => ({ ...props, url: window.location.pathname, title: GLOBAL_CONFIG_SITE.title }))
+    } else {
+      console.warn('Umami Analytics: umami.track is not available')
+    }
+  }
+
+  const loadUmamiJS = () => {
+    btf.getScript('https://cloud.umami.is/script.js', {
+      'data-website-id': 'c159e504-5916-4bc3-aa25-dc8c339849d2',
+      'data-auto-track': 'false',
+      ...option
+    }).then(() => {
+      runTrack()
+    }).catch(error => {
+      console.error('Umami Analytics: Error loading script', error)
+    })
+  }
+
+  const getData = async () => {
+    try {
+      const now = Date.now()
+      const headerList = { 'Accept': 'application/json' }
+
+      // Umami Cloud gives an API Key that starts with "api_"
+      // - API Key: use x-umami-api-key
+      // - JWT token: use Authorization: Bearer <token>
+      if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+        headerList['x-umami-api-key'] = config.token
+      } else if (config && config.token) {
+        headerList['Authorization'] = `Bearer ${config.token}`
+      }
+
+      // Note: Umami Cloud v1 /stats endpoint does NOT filter by url reliably.
+      // We use it only for site-level totals (UV/PV). Per-post PV uses metrics(type=url).
+      const res = await fetch(`https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/stats?startAt=0000000000&endAt=${now}`, {
+        method: "GET",
+        headers: headerList
+      })
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Umami Analytics: Failed to fetch data', error)
+      throw error
+    }
+  }
+
+  // Get per-page PV by aggregating Umami "pageview" events.
+  // Reason: Umami Cloud v1 metrics(type=url) returns 1 per page for this site (likely sessions/unique),
+  // and /stats does not support url filtering. /events is reliable and returns pageview events with urlPath.
+  const getPageviewMap = async (force = false) => {
+    const now = Date.now()
+    const headerList = { 'Accept': 'application/json' }
+
+    if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+      headerList['x-umami-api-key'] = config.token
+    } else if (config && config.token) {
+      headerList['Authorization'] = `Bearer ${config.token}`
+    }
+
+    const cacheKey = 'umami_pv_map_v1'
+    const cached = btf?.saveToLocal?.get?.(cacheKey)
+    // Keep cache window short so PV feels "near real-time" when navigating with PJAX.
+    // (Umami Cloud may take ~0.5-2s to persist events; we also do a delayed forced refresh after tracking.)
+    if (!force && cached && cached.data && (Date.now() - cached.ts) < 10 * 1000) {
+      return cached.data
+    }
+
+    const map = new Map()
+    const pageSize = 500
+    let page = 1
+    let total = Infinity
+
+    while ((page - 1) * pageSize < total) {
+      const url = `https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/events?startAt=0000000000&endAt=${now}&page=${page}&pageSize=${pageSize}`
+      const res = await fetch(url, { method: 'GET', headers: headerList })
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+      const json = await res.json()
+
+      const data = Array.isArray(json?.data) ? json.data : []
+      total = typeof json?.count === 'number' ? json.count : data.length
+
+      for (const ev of data) {
+        // eventType===1 is pageview for Umami v1
+        const path = normalizePath(ev?.urlPath || '')
+        if (!path) continue
+        map.set(path, (map.get(path) || 0) + 1)
+      }
+
+      if (data.length < pageSize) break
+      page += 1
+    }
+
+    const plain = Object.fromEntries(map)
+    btf?.saveToLocal?.set?.(cacheKey, { ts: Date.now(), data: plain }, 1)
+    return plain
+  }
+
+  const normalizePath = (p) => {
+    if (!p || typeof p !== 'string') return ''
+    // Keep only path part, ensure leading slash and trailing slash
+    const raw = p.split('?')[0].split('#')[0]
+    let path = raw
+    // Decode URL-encoded pathname so it matches Umami metrics output (which can be decoded)
+    try {
+      // decodeURIComponent is stricter; guard with try/catch
+      path = decodeURIComponent(path)
+    } catch (e) {
+      try { path = decodeURI(path) } catch (_) {}
+    }
+    if (!path.startsWith('/')) path = '/' + path.replace(/^\/*/, '')
+    return path.endsWith('/') ? path : path + '/'
+  }
+
+  const insertData = async () => {
+    try {
+      if (config.site_uv || config.site_pv) {
+        const data = await getData()
+
+        if (config.site_uv) {
+          const siteUV = document.getElementById('umami-site-uv')
+          const uv = data && data.visitors != null
+            ? (typeof data.visitors === 'object' && data.visitors !== null && typeof data.visitors.value !== 'undefined'
+              ? data.visitors.value
+              : data.visitors)
+            : undefined
+          if (siteUV && typeof uv !== 'undefined') {
+            siteUV.textContent = uv
+          } else if (siteUV) {
+            console.warn('Umami Analytics: Invalid site UV data received')
+          }
+        }
+
+        if (config.site_pv) {
+          const sitePV = document.getElementById('umami-site-pv')
+          const pv = data && data.pageviews != null
+            ? (typeof data.pageviews === 'object' && data.pageviews !== null && typeof data.pageviews.value !== 'undefined'
+              ? data.pageviews.value
+              : data.pageviews)
+            : undefined
+          if (sitePV && typeof pv !== 'undefined') {
+            sitePV.textContent = pv
+          } else if (sitePV) {
+            console.warn('Umami Analytics: Invalid site PV data received')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert data', error)
+    }
+  }
+
+  const insertListPV = async () => {
+    try {
+      if (!config.page_pv) return
+      const pvObj = await getPageviewMap(false)
+      const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+      const nodes = document.querySelectorAll('.umami-post-pv[data-umami-url]')
+      if (nodes && nodes.length > 0) {
+        nodes.forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          const pv = map.has(key) ? map.get(key) : 0
+          node.textContent = pv
+        })
+      }
+
+      // Also update per-post PV on post pages (use the same url metrics map)
+      if (GLOBAL_CONFIG_SITE.pageType === 'post' && config.page_pv) {
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          const pv = map.has(currentKey) ? map.get(currentKey) : 0
+          pagePV.textContent = pv
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert list pv', error)
+    }
+  }
+
+  // After tracking, do a delayed forced refresh so the UI reflects the newest PV.
+  const refreshPVAfterTrack = () => {
+    if (!config.page_pv) return
+    // Give Umami a moment to persist the event, then bypass cache once.
+    setTimeout(async () => {
+      try {
+        const pvObj = await getPageviewMap(true)
+        const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+        // update list nodes if present
+        document.querySelectorAll('.umami-post-pv[data-umami-url]').forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          node.textContent = map.has(key) ? map.get(key) : 0
+        })
+
+        // update current post PV if present
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          pagePV.textContent = map.has(currentKey) ? map.get(currentKey) : 0
+        }
+      } catch (e) {
+        console.error('Umami Analytics: Failed to refresh pv after track', e)
+      }
+    }, 1200)
+  }
+
+  btf.addGlobalFn('pjaxComplete', runTrack, 'umami_analytics_run_track')
+  btf.addGlobalFn('pjaxComplete', insertData, 'umami_analytics_insert')
+  btf.addGlobalFn('pjaxComplete', insertListPV, 'umami_analytics_insert_list_pv')
+  btf.addGlobalFn('pjaxComplete', refreshPVAfterTrack, 'umami_analytics_refresh_pv_after_track')
+
+
+  loadUmamiJS()
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', insertData)
+    document.addEventListener('DOMContentLoaded', insertListPV)
+    document.addEventListener('DOMContentLoaded', refreshPVAfterTrack)
+  } else {
+    setTimeout(insertData, 100)
+    setTimeout(insertListPV, 150)
+    setTimeout(refreshPVAfterTrack, 200)
+  }
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading Database</span></div><div class="local-search-input"><input placeholder="搜索文章..." type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"scale":1.1,"jsonPath":"https://raw.githubusercontent.com/iCharlesZ/vscode-live2d-models/master/model-library/bilibili-22/index.json"},"display":{"position":"left","width":260,"height":520,"hOffset":0,"vOffset":-40},"mobile":{"show":false,"scale":0.5},"react":{"opacityDefault":0.8,"opacityOnHover":0.2}});</script></body></html>
