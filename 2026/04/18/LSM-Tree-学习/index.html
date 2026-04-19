@@ -1,0 +1,682 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>LSM-Tree 学习 | Zane</title><meta name="author" content="Zane Woo"><meta name="copyright" content="Zane Woo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="A data structure designed for high write throughput in storage systems">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LSM-Tree 学习">
+<meta property="og:url" content="https://zane-woo.github.io/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/index.html">
+<meta property="og:site_name" content="Zane">
+<meta property="og:description" content="A data structure designed for high write throughput in storage systems">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zane-woo.github.io/img/img1.webp">
+<meta property="article:published_time" content="2026-04-18T14:55:44.000Z">
+<meta property="article:modified_time" content="2026-04-19T04:55:05.381Z">
+<meta property="article:author" content="Zane Woo">
+<meta property="article:tag" content="数据结构">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zane-woo.github.io/img/img1.webp"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "LSM-Tree 学习",
+  "url": "https://zane-woo.github.io/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/",
+  "image": "https://zane-woo.github.io/img/img1.webp",
+  "datePublished": "2026-04-18T14:55:44.000Z",
+  "dateModified": "2026-04-19T04:55:05.381Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Zane Woo",
+      "url": "https://Zane-Woo.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://zane-woo.github.io/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="manifest" href="/manifest.webmanifest"/><link rel="apple-touch-icon" sizes="180x180" href="/img/favicon.png"/><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png"/><link rel="icon" type="image/png" sizes="16x16" href="/img/favicon.png"/><link rel="mask-icon" href="/img/favicon.png" color="#5bbad5"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.json","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"No results found for: ${query}","hits_stats":"${hits} articles found"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'LSM-Tree 学习',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="preload" as="image" href="/img/img0.webp"><link rel="preload" as="image" href="/img/avatar2.webp"><link rel="preload" as="image" href="/img/img3.webp"><link rel="preload" as="image" href="/img/img4.webp"><link rel="preload" as="image" href="/img/img5.webp"><link rel="preload" as="image" href="/img/img6.webp"><link rel="preload" as="image" href="/img/img7.webp"><link rel="dns-prefetch" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//cdn.jsdelivr.net" crossorigin><style>#site-info::before{content:"";display:block;width:150px;height:150px;margin:0 auto 30px;border-radius:50%;background:url(/img/avatar.webp) center/cover;border:3px solid rgba(255,255,255,0.8);box-shadow:0 5px 20px rgba(0,0,0,0.3);}</style><style>.card-widget,.recent-post-item{background:rgba(255,255,255,0.75)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;border:1px solid rgba(255,255,255,0.3)!important;box-shadow:0 8px 32px rgba(0,0,0,0.1)!important;}[data-theme="dark"] .card-widget,[data-theme="dark"] .recent-post-item{background:rgba(0,0,0,0.5)!important;border:1px solid rgba(255,255,255,0.1)!important;}</style><style>*,html,body{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/cursor.png'),auto!important;}a,button,input[type="submit"],input[type="button"],.btn,.pointer,[role="button"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/pointer.png'),pointer!important;}input:not([type="submit"]):not([type="button"]),textarea,[contenteditable="true"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/text.png'),text!important;}.disabled,[disabled]{cursor:not-allowed!important;}</style><style>html,body,#page-header,#content-inner,#aside-content,#footer,.card-widget,.recent-post-item,.layout>div,.post-content,.post,#rightside{transition:background-color .25s ease,color .25s ease,border-color .25s ease,box-shadow .25s ease!important;}@media (prefers-reduced-motion:reduce){html,body,#page-header,#content-inner,#aside-content,#footer,.card-widget,.recent-post-item,.layout>div,.post-content,.post,#rightside{transition:none!important;}}</style><link rel="stylesheet" href="/css/post-heatmap.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">Loading...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="web_bg" style="background-image: url(/img/img3.webp);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">34</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">45</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">30</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/img1.webp);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Zane</span></a><a class="nav-page-title" href="/"><span class="site-name">LSM-Tree 学习</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">LSM-Tree 学习</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-04-18T14:55:44.000Z" title="Created 2026-04-18 22:55:44">2026-04-18</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-04-19T04:55:05.381Z" title="Updated 2026-04-19 12:55:05">2026-04-19</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/">学习</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/">coding</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/Data-Structure/">Data Structure</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0/coding/Data-Structure/LSM-Tree/">LSM Tree</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">Word Count:</span><span class="word-count">1.9k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">Reading Time:</span><span>6mins</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="umamiPV" data-path="/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="Definition"><a href="#Definition" class="headerlink" title="Definition"></a>Definition</h1><p>An <strong>LSM Tree (Log-Structured Merge Tree)</strong> is a data structure designed for <strong>high write throughput</strong> in storage systems—especially databases that deal with massive, continuous writes (logs, metrics, user events, etc.).</p>
+<h2 id="Core-Idea"><a href="#Core-Idea" class="headerlink" title="Core Idea"></a>Core Idea</h2><p>Traditional databases (like B-trees) try to <strong>update data in place</strong> → lots of random disk I&#x2F;O.</p>
+<p>LSM Tree flips this:</p>
+<blockquote>
+<p>❗ Always write sequentially, defer sorting &amp; <strong>merging to later</strong></p>
+</blockquote>
+<h2 id="LSM树的定义"><a href="#LSM树的定义" class="headerlink" title="LSM树的定义"></a>LSM树的定义</h2><ol>
+<li>LSM树是一个横跨内存和磁盘的，包含多颗”子树”的一个森林。</li>
+<li>LSM树分为Level 0，Level 1，Level 2 … Level n 多颗子树，其中只有Level 0在内存中，其余Level 1-n在磁盘中。</li>
+<li>内存中的Level 0子树一般采用排序树（<a target="_blank" rel="noopener" href="https://zhida.zhihu.com/search?content_id=180530312&content_type=Article&match_order=1&q=%E7%BA%A2%E9%BB%91%E6%A0%91&zhida_source=entity">红黑树</a>&#x2F;AVL树）、跳表或者<a target="_blank" rel="noopener" href="https://zhida.zhihu.com/search?content_id=180530312&content_type=Article&match_order=1&q=TreeMap&zhida_source=entity">TreeMap</a>等这类有序的数据结构，方便后续顺序写磁盘。</li>
+<li>磁盘中的Level 1-n子树，本质是数据排好序后顺序写到磁盘上的文件，只是叫做树而已。</li>
+<li>每一层的子树都有一个阈值大小，达到阈值后会进行合并，合并结果写入下一层。</li>
+<li>只有内存中数据允许原地更新，磁盘上数据的变更只允许追加写，不做原地更新。</li>
+</ol>
+<p><img src="https://pic2.zhimg.com/v2-9359003a0c88626b33979b784982e9ab_1440w.jpg" alt="img" loading='lazy'></p>
+<ul>
+<li>图1中分成了左侧绿色的内存部分和右侧蓝色的磁盘部分（定义1）。</li>
+<li>图1左侧绿色的内存部分只包含Level 0树，右侧蓝色的磁盘部分则包含Level 1-n等多棵”树”（定义2）</li>
+<li>图1左侧绿色的内存部分中Level 0是一颗二叉排序树（定义3）。注意这里的有序性，该性质决定了LSM树优异的读写性能。</li>
+<li>图1右侧蓝色的磁盘部分所包含的Level 1到Level n多颗树，虽然叫做“树”，但本质是按数据key排好序后，顺序写在磁盘上的一个个文件（定义4） ，注意这里再次出现了有序性。</li>
+<li>内存中的Level 0树在达到阈值后，会在内存中遍历排好序的Level 0树并顺序写入磁盘的Level 1。同样的，在磁盘中的Level n（n&gt;0）达到阈值时，则会将Level n层的多个文件进行归并，写入Level n+1层。（定义5）</li>
+<li>除了内存中的Level 0层做原地更新外，对已写入磁盘上的数据，都采用Append形式的磁盘顺序写，即更新和删除操作并不去修改老数据，只是简单的追加新数据。图1中右侧蓝色的磁盘部分，Level 1和Level 2均包含key为2的数据，同时图1左侧绿色内存中的Level 0树也包含key为2的数据节点。（定义6）</li>
+</ul>
+<h1 id="Method"><a href="#Method" class="headerlink" title="Method"></a>Method</h1><h2 id="Insert"><a href="#Insert" class="headerlink" title="Insert"></a>Insert</h2><p>LSM树的插入较简单，数据无脑往内存中的Level 0排序树丢即可，并不关心该数据是否已经在内存或磁盘中存在。（已经存在该数据的话，则场景转换成更新操作，详见第四部分）</p>
+<p>图2展示了，新数据直接插入Level 0树的过程</p>
+<p><video src="https://vdn6.vzuu.com/SD/b8494042-21d0-11ec-8331-6ad01c902347.mp4?pkey=AAUmX3J1FcRfOYzCoTgy0CMXtFCMHJHcMHaSakqo5aG86bZcEmrXn8VLmqtnzFT4At2-aezHlhvYKk0QQcgE5oj-&bu=078babd7&c=avc.0.0&expiration=1776580264&f=mp4&pu=078babd7&v=ks6" width="500" autoplay loop></video></p>
+<h2 id="Delete"><a href="#Delete" class="headerlink" title="Delete"></a>Delete</h2><p>LSM树的删除操作并不是直接删除数据，而是通过一种叫“墓碑标记”的特殊数据来标识数据的删除。</p>
+<p>删除操作分为：待删除数据在内存中、待删除数据在磁盘中 和 该数据根本不存在 三种情况。</p>
+<p>删除操作本质上也是插入操作</p>
+<p><img src="https://pic2.zhimg.com/v2-6130424a556ba99a040bcd474371d347_b.webp" loading='lazy'></p>
+<p>不删除的原因我觉得是原地删除需要去维护内存中的树的结构与磁盘中的顺序结构</p>
+<h2 id="Change"><a href="#Change" class="headerlink" title="Change"></a>Change</h2><p>LSM树的修改操作和删除操作很像，也是分为三种情况：待修改数据在内存中、在磁盘中和 该数据根本不存在。</p>
+<p>LSM Tree利用了本身的结构的顺序性将增删改都转换为在内存中增来实现高性能的写入。</p>
+<h2 id="Query"><a href="#Query" class="headerlink" title="Query"></a>Query</h2><p>LSM树的查询操作会按顺序查找Level 0、Level 1、Level 2 … Level n 每一颗树，一旦匹配便返回目标数据，不再继续查询。该策略保证了查到的一定是目标key最新版本的数据（有点MVCC的感觉）。</p>
+<p>LSM树的查询操作相对来说代价比较高，需要从Level 0到Level n一直顺序查下去。极端情况是LSM树中不存在该数据，则需要把整个库从Level 0到Level n给扫了一遍，然后返回查无此人（可以通过 <a target="_blank" rel="noopener" href="https://zhida.zhihu.com/search?content_id=180530312&content_type=Article&match_order=1&q=%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8&zhida_source=entity">布隆过滤器</a> + 建立稀疏索引 来优化查询操作）。代价大于以B&#x2F;B+树为基本数据结构的传统RDB存储引擎。</p>
+<h2 id="Merge"><a href="#Merge" class="headerlink" title="Merge"></a>Merge</h2><p>合并操作是LSM树的核心（毕竟LSM树的名字就叫: 日志结构合并树，直接点名了合并这一操作）</p>
+<p>之所以在增、删、改、查这四个基本操作之外还需要合并操作：一是因为内存不是无限大，Level 0树达到阈值时，需要将数据从内存刷到磁盘中，这是合并操作的第一个场景；二是需要对磁盘上达到阈值的顺序文件进行归并，并将归并结果写入下一层，归并过程中会清理重复的数据和被删除的数据(墓碑标记)。我们分别对上述两个场景进行分析：</p>
+<p><strong>内存数据写入磁盘的场景：</strong></p>
+<p>内存中Level 0树在达到阈值后，归并写入磁盘Level 1树。</p>
+<p><img src="https://pic2.zhimg.com/v2-52dc81ca11590af2c57a248b106f889f_b.webp" loading='lazy'></p>
+<p>对内存中的Level 0树进行中序遍历，将数据顺序写入磁盘的Level 1层即可，我们可以看到因为Level 0树是已经排好序的，所以写入的Level 1中的新块也是有序的（有序性保证了查询和归并操作的高效）。此时磁盘的Level 1层有两个Block块。</p>
+<p><strong>磁盘中多个块的归并：</strong></p>
+<p>磁盘中Level 1层达到阈值时，对其包含的两个Block块进行归并，并将归并结果写入Level 2层的过程。</p>
+<p><video src="https://vdn6.vzuu.com/SD/47cada78-21d6-11ec-bf49-362c95d6552e.mp4?pkey=AAUs5pJpZwb7sUFeQy8_QLcL6cJev4M_KCjURby4gK32O5lmeVwiwA47gLpzRic9mA2oKsL1nv03amNmS9qsFDwj&bu=078babd7&c=avc.0.0&expiration=1776581440&f=mp4&pu=078babd7&v=ks6" width="500" autoplay loop></video></p>
+<p>我们注意到key&#x3D;5和key&#x3D;7的数据同时存在于较老的Block 1和较新的Block 2中。而归并的过程是保留较新的数据，于是我们看到结果中，key&#x3D;5和7的数据都是红色的（来自于较新的Block2）。</p>
+<p>综上我们可以看到，不论是场景6.1还是场景6.2，由于原始数据都是有序的，因此归并的过程只需要对数据集进行一次扫描即可，复杂度为O(n)。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上便是对LSM树的增、删、改、查和归并五种核心操作的详细分析。</p>
+<p>可以看到LSM树将增、删、改这三种操作都转化为内存insert + 磁盘顺序写(当Level 0满的时候)，通过这种方式得到了无与伦比的写吞吐量。</p>
+<p>LSM树的查询能力则相对被弱化，相比于B+树的最多3~4次磁盘IO，LSM树则要从Level 0一路查询Level n，极端情况下等于做了全表扫描。（即便做了稀疏索引，也是lg(N0)+lg(N1)+…+lg(Nn)的复杂度，大于B+树的lg(N0+N1+…+Nn)的时间复杂度）。</p>
+<p>同时，LSM树只append追加不原地修改的特性引入了归并操作，归并操作涉及到大量的磁盘IO，比较消耗性能，需要合理设置触发该操作的参数。</p>
+<p>综上我们可以给出LSM树的优缺点：</p>
+<p>优：增、删、改操作飞快，写吞吐量极大。</p>
+<p>缺：读操作性能相对被弱化；不擅长区间范围的读操作； 归并操作较耗费资源。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://Zane-Woo.github.io">Zane Woo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://zane-woo.github.io/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/">https://zane-woo.github.io/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a></div><div class="post-share"><div class="social-share" data-image="/img/img1.webp" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/03/29/CSAPP-lecture1-Course-Overview/" title="CSAPP-lecture1-Course_Overview"><img class="cover" src="/img/img0.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post" loading='lazy'><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">CSAPP-lecture1-Course_Overview</div></div><div class="info-2"><div class="info-item-1">csapp learning.</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Zane Woo</div><div class="author-info-description">在路上</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">34</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">45</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">30</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Zane-Woo"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Zane-Woo" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:wuz33631@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="https://space.bilibili.com/3546378057812838" target="_blank" title="Bilibili"><i class="fab fa-bilibili" style="color: #00A1D6;"></i></a><a class="social-icon" href="https://steamcommunity.com/id/76561199534301889" target="_blank" title="Steam"><i class="fab fa-steam" style="color: #000000;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Hi!🙂 I`m Zane. <br>🎉 感谢访问我的个人博客<br>💡 欢迎留言交流</div></div><div class="card-widget card-post-heatmap"><div class="card-content"><div class="item-headline"><i class="fas fa-calendar-alt"></i><span>Recent Commits</span></div><div class="post-heatmap"><div class="post-heatmap__grid"><span class="post-heatmap__day lv-0" title="2025-12-21：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-22：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-23：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-24：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-25：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-26：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-27：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-28：0 篇"></span><span class="post-heatmap__day lv-2" title="2025-12-29：2 篇"></span><span class="post-heatmap__day lv-2" title="2025-12-30：2 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-31：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-01：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-02：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-03：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-08：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-09：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-10：0 篇"></span><span class="post-heatmap__day lv-2" title="2026-01-11：2 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-12：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-16：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-17：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-18：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-19：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-20：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-21：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-29：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-31：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-02-01：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-18：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-02-19：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-20：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-21：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-22：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-02-23：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-03：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-04：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-18：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-19：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-20：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-21：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-24：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-25：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-27：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-28：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-29：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-31：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-17：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-04-18：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-19：0 篇"></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span></div><div class="post-heatmap__legend"><span>少</span><span class="post-heatmap__legend-scale" title="发文数强度"><i class="lv-0"></i><i class="lv-1"></i><i class="lv-2"></i><i class="lv-3"></i><i class="lv-4"></i></span><span>多</span></div></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Definition"><span class="toc-number">1.</span> <span class="toc-text">Definition</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Core-Idea"><span class="toc-number">1.1.</span> <span class="toc-text">Core Idea</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#LSM%E6%A0%91%E7%9A%84%E5%AE%9A%E4%B9%89"><span class="toc-number">1.2.</span> <span class="toc-text">LSM树的定义</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Method"><span class="toc-number">2.</span> <span class="toc-text">Method</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Insert"><span class="toc-number">2.1.</span> <span class="toc-text">Insert</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Delete"><span class="toc-number">2.2.</span> <span class="toc-text">Delete</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Change"><span class="toc-number">2.3.</span> <span class="toc-text">Change</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Query"><span class="toc-number">2.4.</span> <span class="toc-text">Query</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Merge"><span class="toc-number">2.5.</span> <span class="toc-text">Merge</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">2.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/" title="LSM-Tree 学习"><img src="/img/img1.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="LSM-Tree 学习"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/" title="LSM-Tree 学习">LSM-Tree 学习</a><time datetime="2026-04-18T14:55:44.000Z" title="Created 2026-04-18 22:55:44">2026-04-18</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/29/CSAPP-lecture1-Course-Overview/" title="CSAPP-lecture1-Course_Overview"><img src="/img/img0.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="CSAPP-lecture1-Course_Overview"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/29/CSAPP-lecture1-Course-Overview/" title="CSAPP-lecture1-Course_Overview">CSAPP-lecture1-Course_Overview</a><time datetime="2026-03-29T07:51:26.000Z" title="Created 2026-03-29 15:51:26">2026-03-29</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/28/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6/" title="垃圾回收机制"><img src="/img/img4.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="垃圾回收机制"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/28/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6/" title="垃圾回收机制">垃圾回收机制</a><time datetime="2026-03-28T13:15:07.000Z" title="Created 2026-03-28 21:15:07">2026-03-28</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/Java%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" title="Java异步编程"><img src="/img/img3.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Java异步编程"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/25/Java%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" title="Java异步编程">Java异步编程</a><time datetime="2026-03-25T13:19:37.000Z" title="Created 2026-03-25 21:19:37">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/21/USC-CS-572-%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E01-Hadoop-MapReduce/" title="USC CS-572 Search Engine01 Hadoop&amp;MapReduce&amp;Inverted Index"><img src="/img/img1.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="USC CS-572 Search Engine01 Hadoop&amp;MapReduce&amp;Inverted Index"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/21/USC-CS-572-%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E01-Hadoop-MapReduce/" title="USC CS-572 Search Engine01 Hadoop&amp;MapReduce&amp;Inverted Index">USC CS-572 Search Engine01 Hadoop&amp;MapReduce&amp;Inverted Index</a><time datetime="2026-03-21T15:20:10.000Z" title="Created 2026-03-21 23:20:10">2026-03-21</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/img4.webp);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Zane Woo</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'Zane-Woo/Zane-Woo.github.io',
+      'data-repo-id': 'R_kgDOQkAk7Q',
+      'data-category-id': 'DIC_kwDOQkAk7c4Czfzm',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !true) {
+    if (true) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><script src="/js/mermaid-zoom.js"></script><script src="/js/post-heatmap-snake.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="99" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/canvas-nest.min.js"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-heart.min.js" async="async" mobile="false"></script><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-show-text.min.js" data-mobile="false" data-text="luck++,芝士++,喵,喵喵,喵喵喵" data-fontsize="15px" data-random="true" async="async"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["meta[property=\"og:image\"]","meta[property=\"og:title\"]","meta[property=\"og:url\"]","meta[property=\"og:description\"]","link[rel=\"canonical\"]","head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      false
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script>(() => {
+  const option = null
+  const config = {"site_uv":true,"site_pv":true,"page_pv":true,"token":"api_ouaZQLvYMLpqt6M5rtMs1VUlqKlcHLnX"}
+
+  const runTrack = () => {
+    if (typeof umami !== 'undefined' && typeof umami.track === 'function') {
+      umami.track(props => ({ ...props, url: window.location.pathname, title: GLOBAL_CONFIG_SITE.title }))
+    } else {
+      console.warn('Umami Analytics: umami.track is not available')
+    }
+  }
+
+  const loadUmamiJS = () => {
+    btf.getScript('https://cloud.umami.is/script.js', {
+      'data-website-id': 'c159e504-5916-4bc3-aa25-dc8c339849d2',
+      'data-auto-track': 'false',
+      ...option
+    }).then(() => {
+      runTrack()
+    }).catch(error => {
+      console.error('Umami Analytics: Error loading script', error)
+    })
+  }
+
+  const getData = async () => {
+    try {
+      const now = Date.now()
+      const headerList = { 'Accept': 'application/json' }
+
+      // Umami Cloud gives an API Key that starts with "api_"
+      // - API Key: use x-umami-api-key
+      // - JWT token: use Authorization: Bearer <token>
+      if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+        headerList['x-umami-api-key'] = config.token
+      } else if (config && config.token) {
+        headerList['Authorization'] = `Bearer ${config.token}`
+      }
+
+      // Note: Umami Cloud v1 /stats endpoint does NOT filter by url reliably.
+      // We use it only for site-level totals (UV/PV). Per-post PV uses metrics(type=url).
+      const res = await fetch(`https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/stats?startAt=0000000000&endAt=${now}`, {
+        method: "GET",
+        headers: headerList
+      })
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Umami Analytics: Failed to fetch data', error)
+      throw error
+    }
+  }
+
+  // Get per-page PV by aggregating Umami "pageview" events.
+  // Reason: Umami Cloud v1 metrics(type=url) returns 1 per page for this site (likely sessions/unique),
+  // and /stats does not support url filtering. /events is reliable and returns pageview events with urlPath.
+  const getPageviewMap = async (force = false) => {
+    const now = Date.now()
+    const headerList = { 'Accept': 'application/json' }
+
+    if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+      headerList['x-umami-api-key'] = config.token
+    } else if (config && config.token) {
+      headerList['Authorization'] = `Bearer ${config.token}`
+    }
+
+    const cacheKey = 'umami_pv_map_v1'
+    const cached = btf?.saveToLocal?.get?.(cacheKey)
+    // Keep cache window short so PV feels "near real-time" when navigating with PJAX.
+    // (Umami Cloud may take ~0.5-2s to persist events; we also do a delayed forced refresh after tracking.)
+    if (!force && cached && cached.data && (Date.now() - cached.ts) < 10 * 1000) {
+      return cached.data
+    }
+
+    const map = new Map()
+    const pageSize = 500
+    let page = 1
+    let total = Infinity
+
+    while ((page - 1) * pageSize < total) {
+      const url = `https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/events?startAt=0000000000&endAt=${now}&page=${page}&pageSize=${pageSize}`
+      const res = await fetch(url, { method: 'GET', headers: headerList })
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+      const json = await res.json()
+
+      const data = Array.isArray(json?.data) ? json.data : []
+      total = typeof json?.count === 'number' ? json.count : data.length
+
+      for (const ev of data) {
+        // eventType===1 is pageview for Umami v1
+        const path = normalizePath(ev?.urlPath || '')
+        if (!path) continue
+        map.set(path, (map.get(path) || 0) + 1)
+      }
+
+      if (data.length < pageSize) break
+      page += 1
+    }
+
+    const plain = Object.fromEntries(map)
+    btf?.saveToLocal?.set?.(cacheKey, { ts: Date.now(), data: plain }, 1)
+    return plain
+  }
+
+  const normalizePath = (p) => {
+    if (!p || typeof p !== 'string') return ''
+    // Keep only path part, ensure leading slash and trailing slash
+    const raw = p.split('?')[0].split('#')[0]
+    let path = raw
+    // Decode URL-encoded pathname so it matches Umami metrics output (which can be decoded)
+    try {
+      // decodeURIComponent is stricter; guard with try/catch
+      path = decodeURIComponent(path)
+    } catch (e) {
+      try { path = decodeURI(path) } catch (_) {}
+    }
+    if (!path.startsWith('/')) path = '/' + path.replace(/^\/*/, '')
+    return path.endsWith('/') ? path : path + '/'
+  }
+
+  const insertData = async () => {
+    try {
+      if (config.site_uv || config.site_pv) {
+        const data = await getData()
+
+        if (config.site_uv) {
+          const siteUV = document.getElementById('umami-site-uv')
+          const uv = data && data.visitors != null
+            ? (typeof data.visitors === 'object' && data.visitors !== null && typeof data.visitors.value !== 'undefined'
+              ? data.visitors.value
+              : data.visitors)
+            : undefined
+          if (siteUV && typeof uv !== 'undefined') {
+            siteUV.textContent = uv
+          } else if (siteUV) {
+            console.warn('Umami Analytics: Invalid site UV data received')
+          }
+        }
+
+        if (config.site_pv) {
+          const sitePV = document.getElementById('umami-site-pv')
+          const pv = data && data.pageviews != null
+            ? (typeof data.pageviews === 'object' && data.pageviews !== null && typeof data.pageviews.value !== 'undefined'
+              ? data.pageviews.value
+              : data.pageviews)
+            : undefined
+          if (sitePV && typeof pv !== 'undefined') {
+            sitePV.textContent = pv
+          } else if (sitePV) {
+            console.warn('Umami Analytics: Invalid site PV data received')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert data', error)
+    }
+  }
+
+  const insertListPV = async () => {
+    try {
+      if (!config.page_pv) return
+      const pvObj = await getPageviewMap(false)
+      const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+      const nodes = document.querySelectorAll('.umami-post-pv[data-umami-url]')
+      if (nodes && nodes.length > 0) {
+        nodes.forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          const pv = map.has(key) ? map.get(key) : 0
+          node.textContent = pv
+        })
+      }
+
+      // Also update per-post PV on post pages (use the same url metrics map)
+      if (GLOBAL_CONFIG_SITE.pageType === 'post' && config.page_pv) {
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          const pv = map.has(currentKey) ? map.get(currentKey) : 0
+          pagePV.textContent = pv
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert list pv', error)
+    }
+  }
+
+  // After tracking, do a delayed forced refresh so the UI reflects the newest PV.
+  const refreshPVAfterTrack = () => {
+    if (!config.page_pv) return
+    // Give Umami a moment to persist the event, then bypass cache once.
+    setTimeout(async () => {
+      try {
+        const pvObj = await getPageviewMap(true)
+        const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+        // update list nodes if present
+        document.querySelectorAll('.umami-post-pv[data-umami-url]').forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          node.textContent = map.has(key) ? map.get(key) : 0
+        })
+
+        // update current post PV if present
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          pagePV.textContent = map.has(currentKey) ? map.get(currentKey) : 0
+        }
+      } catch (e) {
+        console.error('Umami Analytics: Failed to refresh pv after track', e)
+      }
+    }, 1200)
+  }
+
+  btf.addGlobalFn('pjaxComplete', runTrack, 'umami_analytics_run_track')
+  btf.addGlobalFn('pjaxComplete', insertData, 'umami_analytics_insert')
+  btf.addGlobalFn('pjaxComplete', insertListPV, 'umami_analytics_insert_list_pv')
+  btf.addGlobalFn('pjaxComplete', refreshPVAfterTrack, 'umami_analytics_refresh_pv_after_track')
+
+
+  loadUmamiJS()
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', insertData)
+    document.addEventListener('DOMContentLoaded', insertListPV)
+    document.addEventListener('DOMContentLoaded', refreshPVAfterTrack)
+  } else {
+    setTimeout(insertData, 100)
+    setTimeout(insertListPV, 150)
+    setTimeout(refreshPVAfterTrack, 200)
+  }
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading Database</span></div><div class="local-search-input"><input placeholder="搜索文章..." type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"scale":1.1,"jsonPath":"https://raw.githubusercontent.com/iCharlesZ/vscode-live2d-models/master/model-library/bilibili-22/index.json"},"display":{"position":"left","width":260,"height":520,"hOffset":0,"vOffset":-40},"mobile":{"show":false,"scale":0.5},"react":{"opacityDefault":0.8,"opacityOnHover":0.2}});</script></body></html>

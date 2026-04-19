@@ -1,0 +1,599 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Category: csapp | Zane</title><meta name="author" content="Zane Woo"><meta name="copyright" content="Zane Woo"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="在路上">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Zane">
+<meta property="og:url" content="https://zane-woo.github.io/categories/%E5%AD%A6%E4%B9%A0/coding/csapp/index.html">
+<meta property="og:site_name" content="Zane">
+<meta property="og:description" content="在路上">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://zane-woo.github.io/img/avatar2.webp">
+<meta property="article:author" content="Zane Woo">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zane-woo.github.io/img/avatar2.webp"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://zane-woo.github.io/categories/%E5%AD%A6%E4%B9%A0/coding/csapp/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="manifest" href="/manifest.webmanifest"/><link rel="apple-touch-icon" sizes="180x180" href="/img/favicon.png"/><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png"/><link rel="icon" type="image/png" sizes="16x16" href="/img/favicon.png"/><link rel="mask-icon" href="/img/favicon.png" color="#5bbad5"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.json","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"No results found for: ${query}","hits_stats":"${hits} articles found"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Category: csapp',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'category'
+}</script><link rel="preload" as="image" href="/img/img0.webp"><link rel="preload" as="image" href="/img/avatar2.webp"><link rel="preload" as="image" href="/img/img3.webp"><link rel="preload" as="image" href="/img/img4.webp"><link rel="preload" as="image" href="/img/img5.webp"><link rel="preload" as="image" href="/img/img6.webp"><link rel="preload" as="image" href="/img/img7.webp"><link rel="dns-prefetch" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//cdn.jsdelivr.net" crossorigin><style>#site-info::before{content:"";display:block;width:150px;height:150px;margin:0 auto 30px;border-radius:50%;background:url(/img/avatar.webp) center/cover;border:3px solid rgba(255,255,255,0.8);box-shadow:0 5px 20px rgba(0,0,0,0.3);}</style><style>.card-widget,.recent-post-item{background:rgba(255,255,255,0.75)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;border:1px solid rgba(255,255,255,0.3)!important;box-shadow:0 8px 32px rgba(0,0,0,0.1)!important;}[data-theme="dark"] .card-widget,[data-theme="dark"] .recent-post-item{background:rgba(0,0,0,0.5)!important;border:1px solid rgba(255,255,255,0.1)!important;}</style><style>*,html,body{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/cursor.png'),auto!important;}a,button,input[type="submit"],input[type="button"],.btn,.pointer,[role="button"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/pointer.png'),pointer!important;}input:not([type="submit"]):not([type="button"]),textarea,[contenteditable="true"]{cursor:url('https://cdn.jsdelivr.net/gh/svenstaro/glitter/text.png'),text!important;}.disabled,[disabled]{cursor:not-allowed!important;}</style><style>html,body,#page-header,#content-inner,#aside-content,#footer,.card-widget,.recent-post-item,.layout>div,.post-content,.post,#rightside{transition:background-color .25s ease,color .25s ease,border-color .25s ease,box-shadow .25s ease!important;}@media (prefers-reduced-motion:reduce){html,body,#page-header,#content-inner,#aside-content,#footer,.card-widget,.recent-post-item,.layout>div,.post-content,.post,#rightside{transition:none!important;}}</style><link rel="stylesheet" href="/css/post-heatmap.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">Loading...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="web_bg" style="background-image: url(/img/img3.webp);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">34</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">45</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">30</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="not-home-page" id="page-header" style="background-image: url(/img/img7.webp);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Zane</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 文章</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/shuoshuo/"><i class="fa-fw fas fa-comments"></i><span> 说说</span></a></div><div class="menus_item"><a class="site-page" href="/message/"><i class="fa-fw fas fa-envelope"></i><span> 留言板</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="page-site-info"><h1 id="site-title">csapp</h1></div></header><main class="layout" id="content-inner"><div id="category"><div class="article-sort-title">Category - csapp</div><div class="article-sort"><div class="article-sort-item year">2026</div><div class="article-sort-item"><a class="article-sort-item-img" href="/2026/03/29/CSAPP-lecture1-Course-Overview/" title="CSAPP-lecture1-Course_Overview"><img src="/img/img0.webp" alt="CSAPP-lecture1-Course_Overview" onerror="this.onerror=null;this.src='/img/404.jpg'" loading='lazy'></a><div class="article-sort-item-info"><div class="article-sort-item-time"><i class="far fa-calendar-alt"></i><time class="post-meta-date-created" datetime="2026-03-29T07:51:26.000Z" title="Created 2026-03-29 15:51:26">2026-03-29</time></div><a class="article-sort-item-title" href="/2026/03/29/CSAPP-lecture1-Course-Overview/" title="CSAPP-lecture1-Course_Overview">CSAPP-lecture1-Course_Overview</a><div class="article-sort-item-views"><i class="far fa-eye"></i><span> Post Views: </span><span class="umami-post-pv" data-umami-url="/2026/03/29/CSAPP-lecture1-Course-Overview/"><i class="fa-solid fa-spinner fa-spin"></i></span></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar2.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Zane Woo</div><div class="author-info-description">在路上</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">34</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">45</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">30</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Zane-Woo"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Zane-Woo" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:wuz33631@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a><a class="social-icon" href="https://space.bilibili.com/3546378057812838" target="_blank" title="Bilibili"><i class="fab fa-bilibili" style="color: #00A1D6;"></i></a><a class="social-icon" href="https://steamcommunity.com/id/76561199534301889" target="_blank" title="Steam"><i class="fab fa-steam" style="color: #000000;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Hi!🙂 I`m Zane. <br>🎉 感谢访问我的个人博客<br>💡 欢迎留言交流</div></div><div class="card-widget card-post-heatmap"><div class="card-content"><div class="item-headline"><i class="fas fa-calendar-alt"></i><span>Recent Commits</span></div><div class="post-heatmap"><div class="post-heatmap__grid"><span class="post-heatmap__day lv-0" title="2025-12-21：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-22：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-23：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-24：1 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-25：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-26：0 篇"></span><span class="post-heatmap__day lv-1" title="2025-12-27：1 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-28：0 篇"></span><span class="post-heatmap__day lv-2" title="2025-12-29：2 篇"></span><span class="post-heatmap__day lv-2" title="2025-12-30：2 篇"></span><span class="post-heatmap__day lv-0" title="2025-12-31：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-01：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-02：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-03：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-08：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-09：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-10：0 篇"></span><span class="post-heatmap__day lv-2" title="2026-01-11：2 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-12：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-16：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-17：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-18：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-19：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-20：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-01-21：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-29：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-01-31：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-02-01：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-18：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-02-19：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-20：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-21：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-22：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-02-23：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-24：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-25：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-27：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-02-28：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-03：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-04：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-17：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-18：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-19：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-20：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-21：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-22：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-23：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-24：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-25：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-26：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-27：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-28：1 篇"></span><span class="post-heatmap__day lv-1" title="2026-03-29：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-30：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-03-31：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-01：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-02：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-03：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-04：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-05：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-06：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-07：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-08：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-09：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-10：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-11：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-12：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-13：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-14：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-15：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-16：0 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-17：0 篇"></span><span class="post-heatmap__day lv-1" title="2026-04-18：1 篇"></span><span class="post-heatmap__day lv-0" title="2026-04-19：0 篇"></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span><span class="post-heatmap__day lv-0 is-outside" title=""></span></div><div class="post-heatmap__legend"><span>少</span><span class="post-heatmap__legend-scale" title="发文数强度"><i class="lv-0"></i><i class="lv-1"></i><i class="lv-2"></i><i class="lv-3"></i><i class="lv-4"></i></span><span>多</span></div></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/" title="LSM-Tree 学习"><img src="/img/img1.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="LSM-Tree 学习"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/04/18/LSM-Tree-%E5%AD%A6%E4%B9%A0/" title="LSM-Tree 学习">LSM-Tree 学习</a><time datetime="2026-04-18T14:55:44.000Z" title="Created 2026-04-18 22:55:44">2026-04-18</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/29/CSAPP-lecture1-Course-Overview/" title="CSAPP-lecture1-Course_Overview"><img src="/img/img0.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="CSAPP-lecture1-Course_Overview"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/29/CSAPP-lecture1-Course-Overview/" title="CSAPP-lecture1-Course_Overview">CSAPP-lecture1-Course_Overview</a><time datetime="2026-03-29T07:51:26.000Z" title="Created 2026-03-29 15:51:26">2026-03-29</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/28/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6/" title="垃圾回收机制"><img src="/img/img4.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="垃圾回收机制"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/28/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6/" title="垃圾回收机制">垃圾回收机制</a><time datetime="2026-03-28T13:15:07.000Z" title="Created 2026-03-28 21:15:07">2026-03-28</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/Java%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" title="Java异步编程"><img src="/img/img3.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Java异步编程"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/25/Java%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" title="Java异步编程">Java异步编程</a><time datetime="2026-03-25T13:19:37.000Z" title="Created 2026-03-25 21:19:37">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/21/USC-CS-572-%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E01-Hadoop-MapReduce/" title="USC CS-572 Search Engine01 Hadoop&amp;MapReduce&amp;Inverted Index"><img src="/img/img1.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="USC CS-572 Search Engine01 Hadoop&amp;MapReduce&amp;Inverted Index"/ loading='lazy'></a><div class="content"><a class="title" href="/2026/03/21/USC-CS-572-%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E01-Hadoop-MapReduce/" title="USC CS-572 Search Engine01 Hadoop&amp;MapReduce&amp;Inverted Index">USC CS-572 Search Engine01 Hadoop&amp;MapReduce&amp;Inverted Index</a><time datetime="2026-03-21T15:20:10.000Z" title="Created 2026-03-21 23:20:10">2026-03-21</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>Categories</span>
+            <a class="card-more-btn" href="/categories/" title="View More">
+      <i class="fas fa-angle-right"></i></a>
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0/"><span class="card-category-list-name">学习</span><span class="card-category-list-count">27</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0/coding/"><span class="card-category-list-name">coding</span><span class="card-category-list-count">26</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0/coding/Architecture/"><span class="card-category-list-name">Architecture</span><span class="card-category-list-count">1</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0/coding/Architecture/Search-Engine/"><span class="card-category-list-name">Search Engine</span><span class="card-category-list-count">1</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0/coding/Data-Structure/"><span class="card-category-list-name">Data Structure</span><span class="card-category-list-count">1</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0/coding/Data-Structure/LSM-Tree/"><span class="card-category-list-name">LSM Tree</span><span class="card-category-list-count">1</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0/coding/csapp/"><span class="card-category-list-name">csapp</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0/coding/java/"><span class="card-category-list-name">java</span><span class="card-category-list-count">21</span></a></li></ul></li></ul></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>Tags</span></div><div class="card-tag-cloud"><a href="/tags/java/" style="font-size: 1.3em; color: #99a1ac">java</a> <a href="/tags/%E8%94%9A%E8%93%9D%E6%A1%A3%E6%A1%88/" style="font-size: 1.1em; color: #999">蔚蓝档案</a> <a href="/tags/CompleteFuture/" style="font-size: 1.1em; color: #999">CompleteFuture</a> <a href="/tags/%E6%91%84%E5%BD%B1/" style="font-size: 1.1em; color: #999">摄影</a> <a href="/tags/%E8%B4%A3%E4%BB%BB%E9%93%BE%E6%A8%A1%E5%BC%8F/" style="font-size: 1.1em; color: #999">责任链模式</a> <a href="/tags/coding/" style="font-size: 1.5em; color: #99a9bf">coding</a> <a href="/tags/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/" style="font-size: 1.1em; color: #999">策略模式</a> <a href="/tags/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F/" style="font-size: 1.1em; color: #999">原型模式</a> <a href="/tags/%E4%BA%8C%E6%B8%B8/" style="font-size: 1.1em; color: #999">二游</a> <a href="/tags/cglib/" style="font-size: 1.1em; color: #999">cglib</a> <a href="/tags/%E5%A4%9A%E4%BE%8B%E6%A8%A1%E5%BC%8F/" style="font-size: 1.1em; color: #999">多例模式</a> <a href="/tags/javaguide/" style="font-size: 1.1em; color: #999">javaguide</a> <a href="/tags/%E7%94%9F%E6%B4%BB/" style="font-size: 1.1em; color: #999">生活</a> <a href="/tags/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F/" style="font-size: 1.1em; color: #999">适配器模式</a> <a href="/tags/jdk%E4%BB%A3%E7%90%86/" style="font-size: 1.1em; color: #999">jdk代理</a> <a href="/tags/Java/" style="font-size: 1.4em; color: #99a5b6">Java</a> <a href="/tags/%E5%85%AB%E8%82%A1/" style="font-size: 1.1em; color: #999">八股</a> <a href="/tags/ai/" style="font-size: 1.1em; color: #999">ai</a> <a href="/tags/%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E/" style="font-size: 1.1em; color: #999">搜索引擎</a> <a href="/tags/%E6%9E%B6%E6%9E%84/" style="font-size: 1.1em; color: #999">架构</a> <a href="/tags/%E5%93%88%E5%B8%8C/" style="font-size: 1.1em; color: #999">哈希</a> <a href="/tags/%E6%83%B3%E6%B3%95/" style="font-size: 1.1em; color: #999">想法</a> <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 1.2em; color: #999da3">计算机网络</a> <a href="/tags/ThreadLocal/" style="font-size: 1.1em; color: #999">ThreadLocal</a> <a href="/tags/%E5%8F%8D%E5%B0%84%E6%9C%BA%E5%88%B6/" style="font-size: 1.1em; color: #999">反射机制</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 1.1em; color: #999">数据结构</a> <a href="/tags/AOP/" style="font-size: 1.2em; color: #999da3">AOP</a> <a href="/tags/%E6%B3%A8%E8%A7%A3/" style="font-size: 1.1em; color: #999">注解</a> <a href="/tags/Callback/" style="font-size: 1.1em; color: #999">Callback</a> <a href="/tags/CSAPP/" style="font-size: 1.1em; color: #999">CSAPP</a> <a href="/tags/%E5%88%86%E5%B1%82%E8%AE%BE%E8%AE%A1/" style="font-size: 1.1em; color: #999">分层设计</a> <a href="/tags/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/" style="font-size: 1.1em; color: #999">观察者模式</a> <a href="/tags/%E6%B3%9B%E5%9E%8B/" style="font-size: 1.1em; color: #999">泛型</a> <a href="/tags/%E7%BE%8E%E5%9B%A2/" style="font-size: 1.1em; color: #999">美团</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" style="font-size: 1.1em; color: #999">异步编程</a> <a href="/tags/transient/" style="font-size: 1.1em; color: #999">transient</a> <a href="/tags/%E9%9D%A2%E7%BB%8F/" style="font-size: 1.1em; color: #999">面经</a> <a href="/tags/%E5%8F%8D%E5%B0%84/" style="font-size: 1.1em; color: #999">反射</a> <a href="/tags/agnet/" style="font-size: 1.1em; color: #999">agnet</a> <a href="/tags/socket/" style="font-size: 1.2em; color: #999da3">socket</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>Archives</span>
+      
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/04/">
+            <span class="card-archive-list-date">
+              April 2026
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/03/">
+            <span class="card-archive-list-date">
+              March 2026
+            </span>
+            <span class="card-archive-list-count">5</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/02/">
+            <span class="card-archive-list-date">
+              February 2026
+            </span>
+            <span class="card-archive-list-count">3</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              January 2026
+            </span>
+            <span class="card-archive-list-count">10</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/12/">
+            <span class="card-archive-list-date">
+              December 2025
+            </span>
+            <span class="card-archive-list-count">15</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>Website Info</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">Article Count :</div><div class="item-count">34</div></div><div class="webinfo-item"><div class="item-name">Total Word Count :</div><div class="item-count">49.1k</div></div><div class="webinfo-item"><div class="item-name">Unique Visitors :</div><div class="item-count" id="umami-site-uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">Page Views :</div><div class="item-count" id="umami-site-pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">Last Update :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-04-19T04:56:17.444Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/img4.webp);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Zane Woo</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.4/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script src="/js/mermaid-zoom.js"></script><script src="/js/post-heatmap-snake.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="99" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/canvas-nest.min.js"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-heart.min.js" async="async" mobile="false"></script><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-show-text.min.js" data-mobile="false" data-text="luck++,芝士++,喵,喵喵,喵喵喵" data-fontsize="15px" data-random="true" async="async"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["meta[property=\"og:image\"]","meta[property=\"og:title\"]","meta[property=\"og:url\"]","meta[property=\"og:description\"]","link[rel=\"canonical\"]","head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      false
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script>(() => {
+  const option = null
+  const config = {"site_uv":true,"site_pv":true,"page_pv":true,"token":"api_ouaZQLvYMLpqt6M5rtMs1VUlqKlcHLnX"}
+
+  const runTrack = () => {
+    if (typeof umami !== 'undefined' && typeof umami.track === 'function') {
+      umami.track(props => ({ ...props, url: window.location.pathname, title: GLOBAL_CONFIG_SITE.title }))
+    } else {
+      console.warn('Umami Analytics: umami.track is not available')
+    }
+  }
+
+  const loadUmamiJS = () => {
+    btf.getScript('https://cloud.umami.is/script.js', {
+      'data-website-id': 'c159e504-5916-4bc3-aa25-dc8c339849d2',
+      'data-auto-track': 'false',
+      ...option
+    }).then(() => {
+      runTrack()
+    }).catch(error => {
+      console.error('Umami Analytics: Error loading script', error)
+    })
+  }
+
+  const getData = async () => {
+    try {
+      const now = Date.now()
+      const headerList = { 'Accept': 'application/json' }
+
+      // Umami Cloud gives an API Key that starts with "api_"
+      // - API Key: use x-umami-api-key
+      // - JWT token: use Authorization: Bearer <token>
+      if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+        headerList['x-umami-api-key'] = config.token
+      } else if (config && config.token) {
+        headerList['Authorization'] = `Bearer ${config.token}`
+      }
+
+      // Note: Umami Cloud v1 /stats endpoint does NOT filter by url reliably.
+      // We use it only for site-level totals (UV/PV). Per-post PV uses metrics(type=url).
+      const res = await fetch(`https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/stats?startAt=0000000000&endAt=${now}`, {
+        method: "GET",
+        headers: headerList
+      })
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+
+      return await res.json()
+    } catch (error) {
+      console.error('Umami Analytics: Failed to fetch data', error)
+      throw error
+    }
+  }
+
+  // Get per-page PV by aggregating Umami "pageview" events.
+  // Reason: Umami Cloud v1 metrics(type=url) returns 1 per page for this site (likely sessions/unique),
+  // and /stats does not support url filtering. /events is reliable and returns pageview events with urlPath.
+  const getPageviewMap = async (force = false) => {
+    const now = Date.now()
+    const headerList = { 'Accept': 'application/json' }
+
+    if (config && typeof config.token === 'string' && config.token.startsWith('api_')) {
+      headerList['x-umami-api-key'] = config.token
+    } else if (config && config.token) {
+      headerList['Authorization'] = `Bearer ${config.token}`
+    }
+
+    const cacheKey = 'umami_pv_map_v1'
+    const cached = btf?.saveToLocal?.get?.(cacheKey)
+    // Keep cache window short so PV feels "near real-time" when navigating with PJAX.
+    // (Umami Cloud may take ~0.5-2s to persist events; we also do a delayed forced refresh after tracking.)
+    if (!force && cached && cached.data && (Date.now() - cached.ts) < 10 * 1000) {
+      return cached.data
+    }
+
+    const map = new Map()
+    const pageSize = 500
+    let page = 1
+    let total = Infinity
+
+    while ((page - 1) * pageSize < total) {
+      const url = `https://api.umami.is/v1/websites/c159e504-5916-4bc3-aa25-dc8c339849d2/events?startAt=0000000000&endAt=${now}&page=${page}&pageSize=${pageSize}`
+      const res = await fetch(url, { method: 'GET', headers: headerList })
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+      const json = await res.json()
+
+      const data = Array.isArray(json?.data) ? json.data : []
+      total = typeof json?.count === 'number' ? json.count : data.length
+
+      for (const ev of data) {
+        // eventType===1 is pageview for Umami v1
+        const path = normalizePath(ev?.urlPath || '')
+        if (!path) continue
+        map.set(path, (map.get(path) || 0) + 1)
+      }
+
+      if (data.length < pageSize) break
+      page += 1
+    }
+
+    const plain = Object.fromEntries(map)
+    btf?.saveToLocal?.set?.(cacheKey, { ts: Date.now(), data: plain }, 1)
+    return plain
+  }
+
+  const normalizePath = (p) => {
+    if (!p || typeof p !== 'string') return ''
+    // Keep only path part, ensure leading slash and trailing slash
+    const raw = p.split('?')[0].split('#')[0]
+    let path = raw
+    // Decode URL-encoded pathname so it matches Umami metrics output (which can be decoded)
+    try {
+      // decodeURIComponent is stricter; guard with try/catch
+      path = decodeURIComponent(path)
+    } catch (e) {
+      try { path = decodeURI(path) } catch (_) {}
+    }
+    if (!path.startsWith('/')) path = '/' + path.replace(/^\/*/, '')
+    return path.endsWith('/') ? path : path + '/'
+  }
+
+  const insertData = async () => {
+    try {
+      if (config.site_uv || config.site_pv) {
+        const data = await getData()
+
+        if (config.site_uv) {
+          const siteUV = document.getElementById('umami-site-uv')
+          const uv = data && data.visitors != null
+            ? (typeof data.visitors === 'object' && data.visitors !== null && typeof data.visitors.value !== 'undefined'
+              ? data.visitors.value
+              : data.visitors)
+            : undefined
+          if (siteUV && typeof uv !== 'undefined') {
+            siteUV.textContent = uv
+          } else if (siteUV) {
+            console.warn('Umami Analytics: Invalid site UV data received')
+          }
+        }
+
+        if (config.site_pv) {
+          const sitePV = document.getElementById('umami-site-pv')
+          const pv = data && data.pageviews != null
+            ? (typeof data.pageviews === 'object' && data.pageviews !== null && typeof data.pageviews.value !== 'undefined'
+              ? data.pageviews.value
+              : data.pageviews)
+            : undefined
+          if (sitePV && typeof pv !== 'undefined') {
+            sitePV.textContent = pv
+          } else if (sitePV) {
+            console.warn('Umami Analytics: Invalid site PV data received')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert data', error)
+    }
+  }
+
+  const insertListPV = async () => {
+    try {
+      if (!config.page_pv) return
+      const pvObj = await getPageviewMap(false)
+      const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+      const nodes = document.querySelectorAll('.umami-post-pv[data-umami-url]')
+      if (nodes && nodes.length > 0) {
+        nodes.forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          const pv = map.has(key) ? map.get(key) : 0
+          node.textContent = pv
+        })
+      }
+
+      // Also update per-post PV on post pages (use the same url metrics map)
+      if (GLOBAL_CONFIG_SITE.pageType === 'post' && config.page_pv) {
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          const pv = map.has(currentKey) ? map.get(currentKey) : 0
+          pagePV.textContent = pv
+        }
+      }
+    } catch (error) {
+      console.error('Umami Analytics: Failed to insert list pv', error)
+    }
+  }
+
+  // After tracking, do a delayed forced refresh so the UI reflects the newest PV.
+  const refreshPVAfterTrack = () => {
+    if (!config.page_pv) return
+    // Give Umami a moment to persist the event, then bypass cache once.
+    setTimeout(async () => {
+      try {
+        const pvObj = await getPageviewMap(true)
+        const map = new Map(Object.entries(pvObj || {}).map(([k, v]) => [k, v]))
+
+        // update list nodes if present
+        document.querySelectorAll('.umami-post-pv[data-umami-url]').forEach(node => {
+          const u = node.getAttribute('data-umami-url') || ''
+          const key = normalizePath(u)
+          node.textContent = map.has(key) ? map.get(key) : 0
+        })
+
+        // update current post PV if present
+        const pagePV = document.getElementById('umamiPV')
+        if (pagePV) {
+          const currentKey = normalizePath(window.location.pathname)
+          pagePV.textContent = map.has(currentKey) ? map.get(currentKey) : 0
+        }
+      } catch (e) {
+        console.error('Umami Analytics: Failed to refresh pv after track', e)
+      }
+    }, 1200)
+  }
+
+  btf.addGlobalFn('pjaxComplete', runTrack, 'umami_analytics_run_track')
+  btf.addGlobalFn('pjaxComplete', insertData, 'umami_analytics_insert')
+  btf.addGlobalFn('pjaxComplete', insertListPV, 'umami_analytics_insert_list_pv')
+  btf.addGlobalFn('pjaxComplete', refreshPVAfterTrack, 'umami_analytics_refresh_pv_after_track')
+
+
+  loadUmamiJS()
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', insertData)
+    document.addEventListener('DOMContentLoaded', insertListPV)
+    document.addEventListener('DOMContentLoaded', refreshPVAfterTrack)
+  } else {
+    setTimeout(insertData, 100)
+    setTimeout(insertListPV, 150)
+    setTimeout(refreshPVAfterTrack, 200)
+  }
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading Database</span></div><div class="local-search-input"><input placeholder="搜索文章..." type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"scale":1.1,"jsonPath":"https://raw.githubusercontent.com/iCharlesZ/vscode-live2d-models/master/model-library/bilibili-22/index.json"},"display":{"position":"left","width":260,"height":520,"hOffset":0,"vOffset":-40},"mobile":{"show":false,"scale":0.5},"react":{"opacityDefault":0.8,"opacityOnHover":0.2}});</script></body></html>
